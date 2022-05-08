@@ -14,7 +14,11 @@
     "prettier-format": "prettier --config .prettierrc 'src/**/*.ts' --write"
   },
   "dependencies": {
+    "@grammyjs/auto-retry": "^1.1.1",
+    "@grammyjs/runner": "^1.0.3",
+    "@moebius/fluent": "^1.1.0",
     "dotenv": "^16.0.0",
+    "grammy": "^1.8.3",
     "mysql2": "^2.3.3",
     "sequelize": "^6.19.0",
     "sequelize-typescript": "^2.1.3",
