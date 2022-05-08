@@ -1,8 +1,9 @@
 import { createLogger, format, transports, config } from 'winston';
 import { consoleFormat } from 'winston-console-format';
+import env from './env';
 
 const consoleTransport = new transports.Console({
-  level: process.env.LOG_LEVEL,
+  level: env.LOG_LEVEL,
   handleExceptions: true,
   format: format.combine(
     format.colorize({ all: true }),

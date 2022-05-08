@@ -1,11 +1,17 @@
-import { Bot, Context, session, BotError, SessionFlavor } from 'grammy';
+import { Bot, BotError } from 'grammy';
 import { run, sequentialize } from '@grammyjs/runner';
+import { html } from 'telegram-format';
 import { Database, SettingsManager } from '../database';
+import { LocalizationManager } from '../localization';
 import logger from '../logger';
-
-type ContextState = { isAdmin?: boolean };
-type BotContext = Context &
-  SessionFlavor<Record<string, unknown>> & { state: ContextState };
+import { BotContext } from './BotContext';
+import { getSessionKey } from './helpers/getSessionKey';
+import {
+  applyMiddlewareAutoRetry,
+  applyMiddlewareHandleAdminChatUpdate,
+  applyMiddlewareSession,
+  applyMiddlewareUseFluent,
+} from './middlewares';
 
 export class TgBotManager {
   private bot: Bot<BotContext>;
@@ -13,62 +19,40 @@ export class TgBotManager {
     token: string,
     private db: Database,
     private settingsManager: SettingsManager,
+    private localizationManager: LocalizationManager,
   ) {
     this.bot = new Bot<BotContext>(token);
-  }
-
-  static getSessionKey(ctx: Context) {
-    const chatId = ctx.chat?.id.toString();
-    const userId = ctx.from?.id.toString();
-
-    return chatId && userId ? `${chatId}_${userId}` : undefined;
   }
 
   static onMiddlewareError(err: BotError) {
     logger.error(`Error from onMiddlewareError`, err);
   }
 
-  private applyHandlers() {
-    const b = this.bot;
-    b.use(sequentialize(TgBotManager.getSessionKey));
-    b.use(
-      session({
-        getSessionKey: TgBotManager.getSessionKey,
-        initial: () => ({}),
-      }),
+  private applyAllHandlers() {
+    applyMiddlewareAutoRetry(this.bot);
+    this.bot.use(sequentialize(getSessionKey));
+    applyMiddlewareUseFluent(this.bot, this.localizationManager);
+    applyMiddlewareSession(this.bot);
+    this.bot.command('id', (ctx) =>
+      ctx.reply(
+        `${html.monospace(`${ctx.chat.id}`)} ${html.monospace(
+          `${ctx.from?.id}`,
+        )}`,
+        { parse_mode: 'HTML' },
+      ),
     );
-    b.command('id', (ctx) => ctx.reply(`${ctx.chat.id} ${ctx.from?.id}`));
-
-    // add ctx.state
-    b.use((ctx, next) => {
-      ctx.state = {};
-      return next();
-    });
-
-    // handle admin chat updates
-    b.use(async (ctx, next) => {
-      const chatId = ctx.chat?.id;
-      if (!chatId) return await next();
-
-      const s = this.settingsManager.get();
-      ctx.state.isAdmin = chatId === s.adminTgChatId;
-      if (ctx.state.isAdmin) {
-        await ctx.reply(`Admin chat!`);
-        // await adminChatHandler(ctx);
-        return;
-      }
-
-      return next();
-    });
+    applyMiddlewareHandleAdminChatUpdate(this.bot, this.settingsManager);
 
     // pass next only private messages
-    b.on(['message', 'callback_query'], (ctx, next) =>
+    this.bot.on(['message', 'callback_query'], (ctx, next) =>
       ctx.chat?.type === 'private' ? next() : null,
     );
 
-    b.on('message', async (ctx) => {
-      await ctx.reply(`Hey <b>123</b>`, { parse_mode: 'HTML' });
-    });
+    this.bot.on('message', (ctx) =>
+      ctx.reply(`This is not ${html.bold(`admin!`)}`, {
+        parse_mode: 'HTML',
+      }),
+    );
   }
 
   async start() {
@@ -76,7 +60,7 @@ export class TgBotManager {
 
     this.bot.catch(TgBotManager.onMiddlewareError);
 
-    this.applyHandlers();
+    this.applyAllHandlers();
 
     run(this.bot);
   }
