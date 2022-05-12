@@ -1,17 +1,18 @@
-import { Bot, BotError } from 'grammy';
-import { run, sequentialize } from '@grammyjs/runner';
-import { html } from 'telegram-format';
+import { Bot } from 'grammy';
+import { run } from '@grammyjs/runner';
 import { Database, SettingsManager } from '../database';
 import { LocalizationManager } from '../localization';
-import logger from '../logger';
 import { BotContext } from './BotContext';
-import { getSessionKey } from './helpers/getSessionKey';
 import {
-  applyMiddlewareAutoRetry,
-  applyMiddlewareHandleAdminChatUpdate,
-  applyMiddlewareSession,
-  applyMiddlewareUseFluent,
+  AutoRetry,
+  Session,
+  UseFluent,
+  Sequentialize,
+  AdminChat,
+  UnhandledUpdate,
+  FilterOutUpdates,
 } from './middlewares';
+import { IdCommandHandler, OnMiddlewareError } from './handlers';
 
 export class TgBotManager {
   private bot: Bot<BotContext>;
@@ -24,41 +25,23 @@ export class TgBotManager {
     this.bot = new Bot<BotContext>(token);
   }
 
-  static onMiddlewareError(err: BotError) {
-    logger.error(`Error from onMiddlewareError`, err);
-  }
-
   private applyAllHandlers() {
-    applyMiddlewareAutoRetry(this.bot);
-    this.bot.use(sequentialize(getSessionKey));
-    applyMiddlewareUseFluent(this.bot, this.localizationManager);
-    applyMiddlewareSession(this.bot);
-    this.bot.command('id', (ctx) =>
-      ctx.reply(
-        `${html.monospace(`${ctx.chat.id}`)} ${html.monospace(
-          `${ctx.from?.id}`,
-        )}`,
-        { parse_mode: 'HTML' },
-      ),
-    );
-    applyMiddlewareHandleAdminChatUpdate(this.bot, this.settingsManager);
+    new OnMiddlewareError(this.bot).apply();
 
-    // pass next only private messages
-    this.bot.on(['message', 'callback_query'], (ctx, next) =>
-      ctx.chat?.type === 'private' ? next() : null,
-    );
+    new AutoRetry(this.bot).apply();
+    new Sequentialize(this.bot).apply();
+    new UseFluent(this.bot).apply(this.localizationManager);
+    new Session(this.bot).apply();
+    new IdCommandHandler(this.bot).apply();
+    new AdminChat(this.bot).apply(this.settingsManager);
 
-    this.bot.on('message', (ctx) =>
-      ctx.reply(`This is not ${html.bold(`admin!`)}`, {
-        parse_mode: 'HTML',
-      }),
-    );
+    new FilterOutUpdates(this.bot).apply();
+
+    new UnhandledUpdate(this.bot).apply();
   }
 
   async start() {
     await this.bot.init();
-
-    this.bot.catch(TgBotManager.onMiddlewareError);
 
     this.applyAllHandlers();
 

@@ -1,14 +1,21 @@
 import { Bot, session } from 'grammy';
 import { BotContext } from '../BotContext';
-import { getSessionKey } from '../helpers/getSessionKey';
+import { ApplicableHandlerBase } from '../ApplicableHandlerBase';
+import { getSessionKey } from '../helpers';
 
 export type ContextSessionData = Record<string, unknown>;
 
-export function applyMiddlewareSession(bot: Bot<BotContext>) {
-  bot.use(
-    session({
-      getSessionKey,
-      initial: (): ContextSessionData => ({}),
-    }),
-  );
+export class Session extends ApplicableHandlerBase {
+  constructor(protected bot: Bot<BotContext>) {
+    super();
+  }
+
+  apply() {
+    this.bot.use(
+      session({
+        getSessionKey,
+        initial: (): ContextSessionData => ({}),
+      }),
+    );
+  }
 }
