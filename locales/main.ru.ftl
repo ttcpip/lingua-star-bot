@@ -1,9 +1,10 @@
--bot-name = Lingua-Star bot
+u =
+  .words-trainer = Тренажер
+  .homework = Домашнее задание
+  .edu-materials = Учебные материалы
+  .info = Инфо
+  .lang = Язык
 
-welcome =
-  Привет, {$name}, добро пожаловать в {-bot-name}!
-  У тебя { NUMBER($applesCount) ->
-    [0] нет яблок
-    [one] {$applesCount} яблоко
-    *[other] {$applesCount} яблок
-  }.
+user =
+  .main-menu = Выберите нужный раздел
+  

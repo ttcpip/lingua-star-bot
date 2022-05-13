@@ -3,16 +3,11 @@ import { run } from '@grammyjs/runner';
 import { Database, SettingsManager } from '../database';
 import { LocalizationManager } from '../localization';
 import { BotContext } from './BotContext';
-import {
-  AutoRetry,
-  Session,
-  UseFluent,
-  Sequentialize,
-  AdminChat,
-  UnhandledUpdate,
-  FilterOutUpdates,
-} from './middlewares';
-import { IdCommandHandler, OnMiddlewareError } from './handlers';
+import { CommonModule } from './modules/common';
+import logger from '../logger';
+import { autoRetry } from '@grammyjs/auto-retry';
+import { AdminModule } from './modules/admin';
+import { UserModule } from './modules/user';
 
 export class TgBotManager {
   private bot: Bot<BotContext>;
@@ -26,18 +21,23 @@ export class TgBotManager {
   }
 
   private applyAllHandlers() {
-    new OnMiddlewareError(this.bot).apply();
+    this.bot.catch((err) =>
+      logger.error(`Error from top-level bot.catch`, err),
+    );
 
-    new AutoRetry(this.bot).apply();
-    new Sequentialize(this.bot).apply();
-    new UseFluent(this.bot).apply(this.localizationManager);
-    new Session(this.bot).apply();
-    new IdCommandHandler(this.bot).apply();
-    new AdminChat(this.bot).apply(this.settingsManager);
+    this.bot.api.config.use(
+      autoRetry({
+        maxRetryAttempts: 2,
+        retryOnInternalServerErrors: true,
+        maxDelaySeconds: 30,
+      }),
+    );
 
-    new FilterOutUpdates(this.bot).apply();
+    this.bot.use(CommonModule.getComposer(this.localizationManager));
 
-    new UnhandledUpdate(this.bot).apply();
+    this.bot.use(AdminModule.getComposer(this.settingsManager));
+
+    this.bot.use(UserModule.getComposer());
   }
 
   async start() {
