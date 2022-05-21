@@ -19,4 +19,7 @@ export class Settings extends Model {
 
   @Column(DataType.STRING)
   mainTgBotToken!: string;
+
+  @Column(DataType.INTEGER)
+  homeWorkTgChannelId!: number;
 }

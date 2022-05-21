@@ -1,9 +1,15 @@
+import { ConversationFlavor } from '@grammyjs/conversations';
 import { FluentContextFlavor } from '@grammyjs/fluent';
-import { Context, SessionFlavor } from 'grammy';
+import { HydrateApiFlavor, HydrateFlavor } from '@grammyjs/hydrate';
+import { Api, Context, SessionFlavor } from 'grammy';
 import { User } from '../database';
 
 export type ContextSessionData = Record<string, unknown>;
 
-export type BotContext = Context &
-  SessionFlavor<ContextSessionData> &
-  FluentContextFlavor & { dbUser: User };
+export type BotApi = HydrateApiFlavor<Api>;
+
+export type BotContext = HydrateFlavor<
+  Context &
+    SessionFlavor<ContextSessionData> &
+    FluentContextFlavor & { dbUser: User } & ConversationFlavor
+>;

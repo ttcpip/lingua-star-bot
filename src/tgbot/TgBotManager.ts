@@ -2,10 +2,8 @@ import { Bot } from 'grammy';
 import { run } from '@grammyjs/runner';
 import { Database, SettingsManager } from '../database';
 import { LocalizationManager } from '../localization';
-import { BotContext } from './BotContext';
+import { BotApi, BotContext } from './BotContext';
 import { CommonModule } from './modules/common';
-import logger from '../logger';
-import { autoRetry } from '@grammyjs/auto-retry';
 import { AdminModule } from './modules/admin';
 import { UserModule } from './modules/user';
 
@@ -17,22 +15,12 @@ export class TgBotManager {
     private settingsManager: SettingsManager,
     private localizationManager: LocalizationManager,
   ) {
-    this.bot = new Bot<BotContext>(token);
+    this.bot = new Bot<BotContext, BotApi>(token);
   }
 
   private applyAllHandlers() {
-    this.bot.catch((err) =>
-      logger.error(`Error from top-level bot.catch`, err),
-    );
-
-    this.bot.api.config.use(
-      autoRetry({
-        maxRetryAttempts: 2,
-        retryOnInternalServerErrors: true,
-        maxDelaySeconds: 30,
-      }),
-    );
-
+    CommonModule.configureBotCatch(this.bot);
+    CommonModule.configureApi(this.bot);
     this.bot.use(CommonModule.getComposer(this.localizationManager));
 
     this.bot.use(AdminModule.getComposer(this.settingsManager));
@@ -45,7 +33,10 @@ export class TgBotManager {
 
     this.applyAllHandlers();
 
-    run(this.bot);
+    const runner = run(this.bot);
+    const stopRunner = () => runner.isRunning() && runner.stop();
+    process.once('SIGINT', stopRunner);
+    process.once('SIGTERM', stopRunner);
   }
 
   getBotUsername() {

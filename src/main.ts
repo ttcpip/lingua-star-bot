@@ -3,7 +3,7 @@ import env from './env';
 import logger from './logger';
 import { Database, SettingsManager } from './database';
 import { TgBotManager } from './tgbot';
-import { LocalizationManager } from './localization';
+import { LocalizationManager, appLocales } from './localization';
 
 async function main() {
   logger.info(`↓↓↓ Starting the app... ↓↓↓`);
@@ -33,17 +33,7 @@ async function main() {
   logger.info(`SettingsManager initialization done`);
 
   logger.info(`LocalizationManager initialization...`);
-  const localizationManager = new LocalizationManager([
-    {
-      code: 'ru',
-      filePath: [`./locales/main.ru.ftl`],
-      isDefault: true,
-    },
-    {
-      code: 'en',
-      filePath: [`./locales/main.en.ftl`],
-    },
-  ]);
+  const localizationManager = new LocalizationManager(appLocales);
   await localizationManager.init();
   logger.info(`LocalizationManager initialization done`);
 

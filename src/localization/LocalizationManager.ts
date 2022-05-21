@@ -1,7 +1,6 @@
 import { Fluent, FluentBundleOptions } from '@moebius/fluent';
 import logger from '../logger';
-
-export type Locale = { code: string; filePath: string[]; isDefault?: boolean };
+import { Locale } from './appLocales';
 
 export class LocalizationManager {
   private fluent?: Fluent;

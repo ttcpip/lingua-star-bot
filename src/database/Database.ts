@@ -1,7 +1,7 @@
 import { PoolOptions } from 'sequelize';
 import { Sequelize, SequelizeOptions } from 'sequelize-typescript';
 import logger from '../logger';
-import { Settings, User } from './models';
+import { models } from './models';
 
 export interface DatabaseConfig
   extends Pick<
@@ -20,7 +20,7 @@ export class Database {
       dialect: 'mysql',
       ...config,
 
-      models: [User, Settings],
+      models,
 
       logging: config.logging
         ? (sql: string) => logger.verbose(sql || '', { sequelize: true })
