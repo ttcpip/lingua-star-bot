@@ -25,7 +25,7 @@ export class TgBotManager {
 
     this.bot.use(AdminModule.getComposer(this.settingsManager));
 
-    this.bot.use(UserModule.getComposer());
+    this.bot.use(UserModule.getComposer(this.settingsManager));
   }
 
   async start() {

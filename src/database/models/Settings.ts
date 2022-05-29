@@ -22,4 +22,7 @@ export class Settings extends Model {
 
   @Column(DataType.INTEGER)
   homeWorkTgChannelId!: number;
+
+  @Column(DataType.STRING)
+  displayTimeZone!: string;
 }

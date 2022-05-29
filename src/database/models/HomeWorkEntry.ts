@@ -12,8 +12,9 @@ import { StudyGroup } from './StudyGroup';
 
 export interface HomeWorkEntryAttrs {
   id?: number;
-  name: string;
   studyGroupId?: number;
+  chatId: number;
+  messageId: number;
 }
 
 @Table({ tableName: 'home_work_entries', timestamps: false })
@@ -26,11 +27,15 @@ export class HomeWorkEntry
   @Column(DataType.INTEGER)
   id!: number;
 
-  @Column(DataType.STRING)
-  name!: string;
-
   @ForeignKey(() => StudyGroup)
+  @Column(DataType.INTEGER)
   studyGroupId?: number;
   @BelongsTo(() => StudyGroup)
   studyGroup?: StudyGroup;
+
+  @Column(DataType.INTEGER)
+  chatId!: number;
+
+  @Column(DataType.INTEGER)
+  messageId!: number;
 }

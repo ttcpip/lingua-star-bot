@@ -13,6 +13,7 @@ import { User } from './User';
 export interface StudyGroupAttrs {
   id?: number;
   name: string;
+  lastTimeSetHomeWork: Date;
 }
 
 @Table({ tableName: 'study_groups', timestamps: false })
@@ -27,6 +28,9 @@ export class StudyGroup
 
   @Column(DataType.STRING)
   name!: string;
+
+  @Column(DataType.DATE)
+  lastTimeSetHomeWork!: Date;
 
   @HasMany(() => User)
   users?: User[];

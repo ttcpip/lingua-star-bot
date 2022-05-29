@@ -4,11 +4,13 @@ import {
   Column,
   DataType,
   ForeignKey,
+  HasMany,
   Model,
   PrimaryKey,
   Table,
 } from 'sequelize-typescript';
 import { StudyGroup } from './StudyGroup';
+import { WordsCollection } from './WordsCollection';
 
 export enum language {
   ru,
@@ -49,6 +51,9 @@ export class User extends Model<UserAttrs, UserAttrs> implements UserAttrs {
   studyGroupId?: number;
   @BelongsTo(() => StudyGroup)
   studyGroup?: StudyGroup;
+
+  @HasMany(() => WordsCollection)
+  wordsCollections?: WordsCollection[];
 
   getLangCode() {
     const code = langCodes[this.lang];
