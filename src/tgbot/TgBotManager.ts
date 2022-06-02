@@ -6,9 +6,11 @@ import { BotApi, BotContext } from './BotContext';
 import { CommonModule } from './modules/common';
 import { AdminModule } from './modules/admin';
 import { UserModule } from './modules/user';
+import dedent from 'dedent';
+import { DateTime } from 'luxon';
 
 export class TgBotManager {
-  private bot: Bot<BotContext>;
+  private bot: Bot<BotContext, BotApi>;
   constructor(
     token: string,
     private db: Database,
@@ -34,7 +36,7 @@ export class TgBotManager {
     this.applyAllHandlers();
 
     const runner = run(this.bot);
-    const stopRunner = () => runner.isRunning() && runner.stop();
+    const stopRunner = async () => runner.isRunning() && (await runner.stop());
     process.once('SIGINT', stopRunner);
     process.once('SIGTERM', stopRunner);
   }
@@ -44,5 +46,18 @@ export class TgBotManager {
     const username = this.bot.botInfo?.username;
     if (!username) throw new Error(`No username found!`);
     return username;
+  }
+
+  async notify() {
+    await this.bot.api.sendMessage(
+      this.settingsManager.get().adminTgChatId,
+      dedent`
+        🎉 Бот запущен
+        Время на сервере: ${DateTime.now()
+          .setLocale('ru')
+          .toFormat(`dd.MM.yyyy HH:mm:ss (z)`)}
+      `,
+      { disable_notification: true, protect_content: true },
+    );
   }
 }

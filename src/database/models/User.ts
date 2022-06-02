@@ -27,7 +27,7 @@ export interface UserAttrs {
   lang: language;
   tgid: number;
   name: string;
-  studyGroupId?: number;
+  studyGroupId: number | null;
 }
 
 @Table({ tableName: 'users', timestamps: false })
@@ -48,7 +48,7 @@ export class User extends Model<UserAttrs, UserAttrs> implements UserAttrs {
 
   @ForeignKey(() => StudyGroup)
   @Column(DataType.INTEGER)
-  studyGroupId?: number;
+  studyGroupId!: number | null;
   @BelongsTo(() => StudyGroup)
   studyGroup?: StudyGroup;
 

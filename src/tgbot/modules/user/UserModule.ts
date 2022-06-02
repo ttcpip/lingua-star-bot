@@ -1,10 +1,17 @@
 import { createConversation } from '@grammyjs/conversations';
 import { Menu } from '@grammyjs/menu';
 import assert from 'assert';
-import { Composer } from 'grammy';
+import { Composer, InlineKeyboard } from 'grammy';
 import { DateTime } from 'luxon';
 import { html } from 'telegram-format';
-import { language, SettingsManager, User } from '../../../database';
+import { isWebUri } from 'valid-url';
+import {
+  language,
+  SettingsManager,
+  StudyGroup,
+  User,
+  Word,
+} from '../../../database';
 import { noop } from '../../../helpers';
 import { BotContext } from '../../BotContext';
 import { BotConversation } from '../../BotConversation';
@@ -57,6 +64,18 @@ export class UserModule {
         Collections.createCollectionConversationId,
       ),
     );
+    composer.use(
+      createConversation(
+        Collections.getEditCollectionConversation(),
+        Collections.editCollectionConversationId,
+      ),
+    );
+    composer.use(
+      createConversation(
+        UserModule.getAddWordConversation(),
+        UserModule.addWordConversationId,
+      ),
+    );
 
     const readyCollectionsMenu = Collections.getReadyCollectionsMenu();
     const wordsCollectionsMenu =
@@ -84,6 +103,37 @@ export class UserModule {
       await ctx.replyWithPhoto(ctx.match[1]);
     });
     // TODO remove END
+
+    composer.hears(/\/start (.+)_(\d+)/, async (ctx, next) => {
+      const cmd = ctx.match[1];
+      const grId = +ctx.match[2];
+
+      /** study group */
+      if (cmd === 'sg') {
+        const gr = await StudyGroup.findByPk(grId);
+        if (!gr) return await ctx.reply(ctx.t('u.error-group-not-found'));
+        await ctx.dbUser.update({ studyGroupId: grId });
+        await ctx.reply(
+          ctx.t('u.msg-joined-study-group', { name: html.escape(gr.name) }),
+        );
+      }
+
+      await next();
+    });
+
+    /** add word */
+    composer.callbackQuery(/goto:aw(\d+)/, async (ctx) => {
+      await ctx.conversation.enter(this.addWordConversationId, {
+        overwrite: true,
+      });
+    });
+
+    /** back to words trainer */
+    composer.callbackQuery(/goto:baw/, async (ctx) => {
+      await ctx.editMessageText(ctx.t('u.msg-words-trainer'), {
+        reply_markup: wordsTrainerMenu,
+      });
+    });
 
     composer.on('message', (ctx) =>
       ctx.reply(ctx.t('btn.main-menu'), { reply_markup: mainMenu }),
@@ -173,12 +223,12 @@ export class UserModule {
         await ctx.fluent.renegotiateLocale();
 
         await ctx.editMessageText(
-          ctx.t('u.msg-settings', { name: ctx.dbUser.name }),
+          ctx.t('u.msg-settings', { name: html.escape(ctx.dbUser.name) }),
         );
       })
       .row()
       .text(ctxt('u.edit-name'), (ctx) =>
-        ctx.conversation.enter(this.getNameConversationId),
+        ctx.conversation.enter(this.getNameConversationId, { overwrite: true }),
       )
       .row()
       .back(ctxt('btn.back'), (ctx) =>
@@ -202,7 +252,7 @@ export class UserModule {
       do {
         const response = await conversation.waitFor('message:text');
         const text = response.message.text;
-        if (!(text && text.length <= 256)) {
+        if (!(text && text.length <= 255)) {
           await ctx.reply(ctx.t('u.invalid-name'));
           continue;
         }
@@ -240,5 +290,53 @@ export class UserModule {
       );
 
     return menu;
+  }
+
+  static addWordConversationId = 'add-word';
+  /** !!! All Side-effects Must Be Wrapped !!! */
+  static getAddWordConversation() {
+    return async (conversation: BotConversation, ctx: BotContext) => {
+      assert(ctx.match && +ctx.match[1]);
+      const collectionId = +ctx.match[1];
+
+      await ctx.editMessageText(ctx.t('u.msg-send-word'), {
+        reply_markup: undefined,
+      });
+
+      do {
+        const response = await conversation.waitFor('message:text');
+        const [word, hint, photo] = response.message.text
+          .split(/^-$/gm)
+          .map((e) => e.trim());
+
+        if (!(word && word.length <= 255)) {
+          await ctx.reply(ctx.t('u.msg-invalid-word'));
+          continue;
+        }
+        if (!(hint && hint.length <= 1024)) {
+          await ctx.reply(ctx.t('u.msg-invalid-hint'));
+          continue;
+        }
+        if (photo && !(photo.length <= 255 && isWebUri(photo))) {
+          await ctx.reply(ctx.t('u.msg-invalid-photo'));
+          continue;
+        }
+
+        await conversation.external({
+          task: () =>
+            Word.create({ word, hint, photo, wordsCollectionId: collectionId }),
+        });
+
+        await ctx.reply(ctx.t('u.msg-added-word', { word }), {
+          reply_markup: new InlineKeyboard().text(
+            ctx.t(`btn.to-the-word`),
+            `TODO`,
+          ),
+        });
+
+        return;
+        // eslint-disable-next-line no-constant-condition
+      } while (true);
+    };
   }
 }

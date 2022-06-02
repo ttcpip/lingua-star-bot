@@ -23,8 +23,16 @@ export class Database {
       models,
 
       logging: config.logging
-        ? (sql: string) => logger.verbose(sql || '', { sequelize: true })
+        ? (sql: string, durationMs?: number) =>
+            logger.verbose(sql || '', {
+              sequelize: true,
+              durationMs: Number.isFinite(durationMs) ? durationMs : NaN,
+            })
         : false,
+
+      benchmark: config.logging ? true : false,
+
+      timezone: '+00:00',
     };
 
     this.sequelize = new Sequelize(options);
