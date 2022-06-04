@@ -8,11 +8,11 @@ import { noop } from '../../../../helpers';
 import { BotContext } from '../../../BotContext';
 import { BotConversation } from '../../../BotConversation';
 import { ctxt } from '../helpers';
+import { UserModule } from '../UserModule';
 
 export class Collections {
   private static MAX_WORDS_PER_PAGE = 6 as const;
-  private static getMaxBtnsPerLine = (totalCnt: number) =>
-    totalCnt <= 5 ? 1 : totalCnt <= 14 ? 2 : 3;
+
   private static getCollectionKb(ctx: BotContext, collectionId: number) {
     return new InlineKeyboard()
       .text(ctx.t('btn.collection-words-list'), `goto:cwl${collectionId}_1`)
@@ -321,7 +321,7 @@ export class Collections {
 
       const kb = new InlineKeyboard();
 
-      const maxBtnsPerLine = Collections.getMaxBtnsPerLine(
+      const maxBtnsPerLine = UserModule.getMaxBtnsPerLine(
         userCollections.length,
       );
       userCollections.forEach(({ id, name }, i) => {
@@ -377,52 +377,7 @@ export class Collections {
     });
   }
 
-  static wordsTrainerMenuId = 'm.words-trainer';
-  static getWordsTrainerMenu(wordsCollectionsMenu: Menu<BotContext>) {
-    const menu = new Menu<BotContext>(Collections.wordsTrainerMenuId, {
-      autoAnswer: false,
-    })
-      .text(ctxt('u.revise-words'))
-      .row()
-      .text(ctxt('u.search-words'))
-      .text(ctxt('u.add-word'), async (ctx) => {
-        const userCollections = await ctx.dbUser.$get('wordsCollections');
-        if (userCollections.length <= 0)
-          return await ctx.answerCallbackQuery({
-            text: ctx.t('u.no-collections'),
-            show_alert: true,
-          });
-
-        const maxBtnsPerLine = Collections.getMaxBtnsPerLine(
-          userCollections.length,
-        );
-        const kb = new InlineKeyboard();
-        userCollections.forEach(({ id, name }, i) => {
-          if (i && i % maxBtnsPerLine === 0) kb.row();
-          kb.text(name, `goto:aw${id}`);
-        });
-        kb.row().text(ctx.t('btn.back'), `goto:baw`);
-
-        await ctx.editMessageText(ctx.t('u.msg-add-words'), {
-          reply_markup: kb,
-        });
-      })
-      .row()
-      .submenu(
-        ctxt('u.words-collections'),
-        Collections.wordsCollectionsMenuId,
-        (ctx) => ctx.editMessageText(ctx.t('u.msg-words-collections')),
-      )
-      .row()
-      .back(ctxt('btn.back'), (ctx) =>
-        ctx.editMessageText(ctx.t('btn.main-menu')),
-      );
-
-    menu.register(wordsCollectionsMenu);
-    return menu;
-  }
-
-  private static wordsCollectionsMenuId = 'm.words-collections';
+  static wordsCollectionsMenuId = 'm.words-collections';
   static getWordsCollectionsMenu(readyCollectionsMenu: Menu<BotContext>) {
     const menu = new Menu<BotContext>(Collections.wordsCollectionsMenuId, {
       autoAnswer: false,
@@ -435,7 +390,7 @@ export class Collections {
       .row()
       .dynamic(async (ctx, range) => {
         const userCollections = await ctx.dbUser.$get('wordsCollections');
-        const maxBtnsPerLine = Collections.getMaxBtnsPerLine(
+        const maxBtnsPerLine = UserModule.getMaxBtnsPerLine(
           userCollections.length,
         );
         userCollections.forEach(({ id, name }, i) => {
@@ -466,9 +421,7 @@ export class Collections {
         const collections = await WordsCollection.findAll({
           where: { isCommon: true },
         });
-        const maxBtnsPerLine = Collections.getMaxBtnsPerLine(
-          collections.length,
-        );
+        const maxBtnsPerLine = UserModule.getMaxBtnsPerLine(collections.length);
         collections.forEach(({ id, name }, i) => {
           if (i && i % maxBtnsPerLine === 0) range.row();
           range.text({ text: name, payload: `goto:rc${id}_1` }, (_, next) =>

@@ -3,6 +3,7 @@ import { Menu } from '@grammyjs/menu';
 import assert from 'assert';
 import { Composer, InlineKeyboard } from 'grammy';
 import { DateTime } from 'luxon';
+import { Op, where, fn, col } from 'sequelize';
 import { html } from 'telegram-format';
 import { isWebUri } from 'valid-url';
 import {
@@ -11,6 +12,7 @@ import {
   StudyGroup,
   User,
   Word,
+  WordsCollection,
 } from '../../../database';
 import { noop } from '../../../helpers';
 import { BotContext } from '../../BotContext';
@@ -19,6 +21,9 @@ import { Collections } from './handlers';
 import { ctxt } from './helpers';
 
 export class UserModule {
+  public static getMaxBtnsPerLine = (totalCnt: number) =>
+    totalCnt <= 5 ? 1 : totalCnt <= 14 ? 2 : 3;
+
   static getComposer(settingsManager: SettingsManager) {
     const composer = new Composer<BotContext>();
     const composerOuter = new Composer<BotContext>();
@@ -54,8 +59,8 @@ export class UserModule {
 
     composer.use(
       createConversation(
-        this.getGetNameConversation(),
-        this.getNameConversationId,
+        UserModule.getGetNameConversation(),
+        UserModule.getNameConversationId,
       ),
     );
     composer.use(
@@ -76,13 +81,19 @@ export class UserModule {
         UserModule.addWordConversationId,
       ),
     );
+    composer.use(
+      createConversation(
+        UserModule.getSearchWordConversation(),
+        UserModule.searchWordConversationId,
+      ),
+    );
 
     const readyCollectionsMenu = Collections.getReadyCollectionsMenu();
     const wordsCollectionsMenu =
       Collections.getWordsCollectionsMenu(readyCollectionsMenu);
     const wordsTrainerMenu =
-      Collections.getWordsTrainerMenu(wordsCollectionsMenu);
-    const mainMenu = this.getMainMenu(settingsManager, wordsTrainerMenu);
+      UserModule.getWordsTrainerMenu(wordsCollectionsMenu);
+    const mainMenu = UserModule.getMainMenu(settingsManager, wordsTrainerMenu);
     composer.use(mainMenu);
 
     Collections.applyCollectionsManualHandlers(
@@ -90,6 +101,12 @@ export class UserModule {
       wordsCollectionsMenu,
       readyCollectionsMenu,
     );
+
+    composer.callbackQuery(/goto:bfsw/, async (ctx) => {
+      await ctx.editMessageText(ctx.t('u.msg-words-trainer'), {
+        reply_markup: wordsTrainerMenu,
+      });
+    });
 
     // TODO remove START
     composer.on(
@@ -123,7 +140,7 @@ export class UserModule {
 
     /** add word */
     composer.callbackQuery(/goto:aw(\d+)/, async (ctx) => {
-      await ctx.conversation.enter(this.addWordConversationId, {
+      await ctx.conversation.enter(UserModule.addWordConversationId, {
         overwrite: true,
       });
     });
@@ -147,8 +164,10 @@ export class UserModule {
     settingsManager: SettingsManager,
     wordsTrainerMenu: Menu<BotContext>,
   ) {
-    const menu = new Menu<BotContext>(this.mainMenuId, { autoAnswer: false })
-      .submenu(ctxt('u.words-trainer'), Collections.wordsTrainerMenuId, (ctx) =>
+    const menu = new Menu<BotContext>(UserModule.mainMenuId, {
+      autoAnswer: false,
+    })
+      .submenu(ctxt('u.words-trainer'), UserModule.wordsTrainerMenuId, (ctx) =>
         ctx.editMessageText(ctx.t('u.msg-words-trainer')),
       )
       .text(ctxt('u.homework'), async (ctx) => {
@@ -178,31 +197,34 @@ export class UserModule {
           .setLocale(ctx.dbUser.getLangCode())
           .toFormat('d MMMM, HH:mm');
         await ctx.reply(ctx.t('u.msg-homework-last-update', { datetime }), {
-          reply_markup: menu.at(this.fromHomeWorkBackToMainMenuMenuId),
+          reply_markup: menu.at(UserModule.fromHomeWorkBackToMainMenuMenuId),
         });
       })
       .row()
-      .submenu(ctxt('u.edu-materials'), this.eduMaterialsMenuId)
+      .submenu(ctxt('u.edu-materials'), UserModule.eduMaterialsMenuId)
       .row()
-      .submenu(ctxt('u.settings'), this.settingsMenuId, (ctx) =>
+      .submenu(ctxt('u.settings'), UserModule.settingsMenuId, (ctx) =>
         ctx.editMessageText(
           ctx.t('u.msg-settings', { name: html.escape(ctx.dbUser.name) }),
         ),
       );
 
     menu.register(wordsTrainerMenu);
-    menu.register(this.getFromHomeWorkBackToMainMenuMenu(menu));
-    menu.register(this.getEduMaterialsMenu());
-    menu.register(this.getSettingsMenu());
+    menu.register(UserModule.getFromHomeWorkBackToMainMenuMenu(menu));
+    menu.register(UserModule.getEduMaterialsMenu());
+    menu.register(UserModule.getSettingsMenu());
 
     return menu;
   }
 
   private static fromHomeWorkBackToMainMenuMenuId = 'm.f-hw-to-main';
   private static getFromHomeWorkBackToMainMenuMenu(mainMenu: Menu<BotContext>) {
-    const menu = new Menu<BotContext>(this.fromHomeWorkBackToMainMenuMenuId, {
-      autoAnswer: false,
-    }).text(ctxt('btn.to-main-menu'), async (ctx) => {
+    const menu = new Menu<BotContext>(
+      UserModule.fromHomeWorkBackToMainMenuMenuId,
+      {
+        autoAnswer: false,
+      },
+    ).text(ctxt('btn.to-main-menu'), async (ctx) => {
       ctx.menu.close();
       await ctx.reply(ctx.t('btn.main-menu'), { reply_markup: mainMenu });
     });
@@ -212,7 +234,7 @@ export class UserModule {
 
   private static settingsMenuId = 'm.settings';
   private static getSettingsMenu() {
-    const menu = new Menu<BotContext>(this.settingsMenuId, {
+    const menu = new Menu<BotContext>(UserModule.settingsMenuId, {
       autoAnswer: false,
     })
       .text(ctxt('u.change-lang'), async (ctx) => {
@@ -228,7 +250,9 @@ export class UserModule {
       })
       .row()
       .text(ctxt('u.edit-name'), (ctx) =>
-        ctx.conversation.enter(this.getNameConversationId, { overwrite: true }),
+        ctx.conversation.enter(UserModule.getNameConversationId, {
+          overwrite: true,
+        }),
       )
       .row()
       .back(ctxt('btn.back'), (ctx) =>
@@ -272,7 +296,7 @@ export class UserModule {
 
   private static eduMaterialsMenuId = 'm.edu-materials';
   private static getEduMaterialsMenu() {
-    const menu = new Menu<BotContext>(this.eduMaterialsMenuId, {
+    const menu = new Menu<BotContext>(UserModule.eduMaterialsMenuId, {
       autoAnswer: false,
     })
       .dynamic((ctx, range) => {
@@ -333,6 +357,127 @@ export class UserModule {
             `TODO`,
           ),
         });
+
+        return;
+        // eslint-disable-next-line no-constant-condition
+      } while (true);
+    };
+  }
+
+  static wordsTrainerMenuId = 'm.words-trainer';
+  static getWordsTrainerMenu(wordsCollectionsMenu: Menu<BotContext>) {
+    const menu = new Menu<BotContext>(UserModule.wordsTrainerMenuId, {
+      autoAnswer: false,
+    })
+      .text(ctxt('u.revise-words'))
+      .row()
+      .text(ctxt('u.search-words'), async (ctx) => {
+        await ctx.conversation.enter(UserModule.searchWordConversationId, {
+          overwrite: true,
+        });
+      })
+      .text(ctxt('u.add-word'), async (ctx) => {
+        const userCollections = await ctx.dbUser.$get('wordsCollections');
+        if (userCollections.length <= 0)
+          return await ctx.answerCallbackQuery({
+            text: ctx.t('u.no-collections'),
+            show_alert: true,
+          });
+
+        const maxBtnsPerLine = UserModule.getMaxBtnsPerLine(
+          userCollections.length,
+        );
+        const kb = new InlineKeyboard();
+        userCollections.forEach(({ id, name }, i) => {
+          if (i && i % maxBtnsPerLine === 0) kb.row();
+          kb.text(name, `goto:aw${id}`);
+        });
+        kb.row().text(ctx.t('btn.back'), `goto:baw`);
+
+        await ctx.editMessageText(ctx.t('u.msg-add-words'), {
+          reply_markup: kb,
+        });
+      })
+      .row()
+      .submenu(
+        ctxt('u.words-collections'),
+        Collections.wordsCollectionsMenuId,
+        (ctx) => ctx.editMessageText(ctx.t('u.msg-words-collections')),
+      )
+      .row()
+      .back(ctxt('btn.back'), (ctx) =>
+        ctx.editMessageText(ctx.t('btn.main-menu')),
+      );
+
+    menu.register(wordsCollectionsMenu);
+
+    return menu;
+  }
+
+  static searchWordConversationId = 'search-word';
+  /** !!! All Side-effects Must Be Wrapped !!! */
+  static getSearchWordConversation() {
+    return async (conversation: BotConversation, ctx: BotContext) => {
+      const oldText = ctx.callbackQuery?.message?.text;
+      const oldMarkup = ctx.callbackQuery?.message?.reply_markup;
+
+      const cancelKb = new InlineKeyboard().text(ctx.t('btn.cancel'), 'cancel');
+      await ctx.editMessageText(ctx.t('u.msg-search-word'), {
+        reply_markup: cancelKb,
+      });
+
+      do {
+        const response = await conversation.waitFor([
+          'message:text',
+          'callback_query:data',
+        ]);
+
+        const cb = response.callbackQuery;
+        if (cb && cb.data === 'cancel') {
+          await ctx.editMessageText(oldText || '.', {
+            reply_markup: oldMarkup,
+          });
+          return;
+        }
+
+        const t = response.message?.text;
+        if (!(t && t.length <= 255)) {
+          await ctx.reply(ctx.t('u.msg-invalid-word'));
+          continue;
+        }
+
+        const q = `%${t.toLowerCase()}%`;
+        const foundWords = await conversation.external({
+          task: async () =>
+            Word.findAll({
+              where: {
+                [Op.or]: [
+                  where(fn('lower', col('word')), Op.like, q),
+                  where(fn('lower', col('hint')), Op.like, q),
+                ],
+                wordsCollectionId: (
+                  await WordsCollection.findAll({
+                    where: { userId: ctx.dbUser.id },
+                  })
+                ).map((e) => e.id),
+              },
+              limit: 6,
+            }),
+        });
+        if (foundWords.length <= 0) {
+          await ctx.reply(ctx.t('u.msg-nothing-found'), {
+            reply_markup: cancelKb,
+          });
+          continue;
+        }
+
+        const kb = new InlineKeyboard();
+        for (const { word, hint } of foundWords)
+          kb.text(`${word} - ${hint}`, `TODO`).row();
+        kb.text(ctx.t('btn.back'), `goto:bfsw`);
+
+        ctx.editMessageReplyMarkup({ reply_markup: undefined }).catch(noop);
+        await ctx.reply(ctx.t('u.msg-search-result'), { reply_markup: kb });
 
         return;
         // eslint-disable-next-line no-constant-condition
