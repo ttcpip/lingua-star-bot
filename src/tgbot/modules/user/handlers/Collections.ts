@@ -13,22 +13,6 @@ import { UserModule } from '../UserModule';
 export class Collections {
   private static MAX_WORDS_PER_PAGE = 6 as const;
 
-  private static getCollectionKb(ctx: BotContext, collectionId: number) {
-    return new InlineKeyboard()
-      .text(ctx.t('btn.collection-words-list'), `goto:cwl${collectionId}_1`)
-      .row()
-      .text(ctx.t('btn.edit-collection'), `goto:ec${collectionId}`)
-      .text(ctx.t('btn.delete'), `goto:dc${collectionId}_0`)
-      .row()
-      .text(ctx.t('btn.repeat-whole-collection'), `goto:csr${collectionId}_1`)
-      .text(
-        ctx.t('btn.dont-repeat-whole-collection'),
-        `goto:csr${collectionId}_0`,
-      )
-      .row()
-      .text(ctx.t('btn.back'), `goto:tc`);
-  }
-
   static applyCollectionsManualHandlers(
     composer: Composer<BotContext>,
     wordsCollectionsMenu: Menu<BotContext>,
@@ -45,12 +29,31 @@ export class Collections {
       ]);
       if (!collection) return await ctx.answerCallbackQuery(ctx.t('u.error'));
 
+      const shareCollectionUrl = `t.me/${ctx.me.username}?start=wc_${collectionId}`;
+      const kb = new InlineKeyboard()
+        .text(ctx.t('btn.collection-words-list'), `goto:cwl${collectionId}_1`)
+        .row()
+        .text(ctx.t('btn.edit-collection'), `goto:ec${collectionId}`)
+        .text(ctx.t('btn.delete'), `goto:dc${collectionId}_0`)
+        .row()
+        .text(ctx.t('btn.repeat-whole-collection'), `goto:csr${collectionId}_1`)
+        .text(
+          ctx.t('btn.dont-repeat-whole-collection'),
+          `goto:csr${collectionId}_0`,
+        )
+        .row()
+        .url(
+          ctx.t('btn.share-collection'),
+          `tg://msg_url?url=${encodeURIComponent(shareCollectionUrl)}`,
+        )
+        .row()
+        .text(ctx.t('btn.back'), `goto:tc`);
       await ctx.editMessageText(
         ctx.t('u.msg-collection', {
           name: html.escape(collection.name),
           wordsCount,
         }),
-        { reply_markup: Collections.getCollectionKb(ctx, collectionId) },
+        { reply_markup: kb },
       );
     });
 
@@ -367,11 +370,7 @@ export class Collections {
       assert(WordsCollection.sequelize);
       await WordsCollection.sequelize.transaction(async (transaction) => {
         const newCollection = await WordsCollection.create(
-          {
-            name: collection.name,
-            userId: ctx.dbUser.id,
-            isCommon: false,
-          },
+          { name: collection.name, userId: ctx.dbUser.id },
           { transaction },
         );
         if (!(collection.words && collection.words.length > 0)) return;

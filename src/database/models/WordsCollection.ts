@@ -3,12 +3,14 @@ import {
   BelongsTo,
   Column,
   DataType,
+  Default,
   ForeignKey,
   HasMany,
   Model,
   PrimaryKey,
   Table,
 } from 'sequelize-typescript';
+import { Optional } from 'sequelize/types';
 import { User } from './User';
 import { Word } from './Word';
 
@@ -21,7 +23,10 @@ export interface WordsCollectionAttrs {
 
 @Table({ tableName: 'words_collections', timestamps: false })
 export class WordsCollection
-  extends Model<WordsCollectionAttrs, WordsCollectionAttrs>
+  extends Model<
+    WordsCollectionAttrs,
+    Optional<WordsCollectionAttrs, 'isCommon'>
+  >
   implements WordsCollectionAttrs
 {
   @PrimaryKey
@@ -38,6 +43,7 @@ export class WordsCollection
   @BelongsTo(() => User)
   user?: User;
 
+  @Default(false)
   @Column(DataType.BOOLEAN)
   isCommon!: boolean;
 

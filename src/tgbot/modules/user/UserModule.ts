@@ -111,16 +111,57 @@ export class UserModule {
 
     composer.hears(/\/start (.+)_(\d+)/, async (ctx, next) => {
       const cmd = ctx.match[1];
-      const grId = +ctx.match[2];
+      const arg1 = +ctx.match[2];
 
       /** study group */
       if (cmd === 'sg') {
+        const grId = arg1;
         const gr = await StudyGroup.findByPk(grId);
         if (!gr) return await ctx.reply(ctx.t('u.error-group-not-found'));
         await ctx.dbUser.update({ studyGroupId: grId });
         await ctx.reply(
           ctx.t('u.msg-joined-study-group', { name: html.escape(gr.name) }),
         );
+      } else if (cmd === 'wc') {
+        const collectionId = arg1;
+        const collection = await WordsCollection.findByPk(collectionId, {
+          include: [Word],
+        });
+        if (!collection)
+          return await ctx.reply(ctx.t('u.error-collection-not-found'));
+        if (!(collection.words && collection.words.length > 0))
+          return await ctx.reply(ctx.t('u.no-words-in-coll'));
+
+        assert(WordsCollection.sequelize);
+        let createdCollectionId = NaN;
+        await WordsCollection.sequelize.transaction(async (transaction) => {
+          const newCollection = await WordsCollection.create(
+            { name: collection.name, userId: ctx.dbUser.id },
+            { transaction },
+          );
+          createdCollectionId = newCollection.id;
+          if (!(collection.words && collection.words.length > 0)) return;
+          await Word.bulkCreate(
+            collection.words.map(({ word, hint, photo }) => ({
+              wordsCollectionId: createdCollectionId,
+              word,
+              hint,
+              photo,
+            })),
+            { transaction },
+          );
+        });
+        await ctx.reply(
+          ctx.t('u.shared-collection-added', {
+            name: html.escape(collection.name),
+          }),
+          {
+            reply_markup: new InlineKeyboard()
+              .text(ctx.t('btn.to-collection'), `goto:c${createdCollectionId}`)
+              .text(ctx.t('btn.to-main-menu'), `goto:main-menu`),
+          },
+        );
+        return;
       }
 
       await next();
@@ -140,6 +181,9 @@ export class UserModule {
       });
     });
 
+    composer.callbackQuery(/goto:main-menu/, async (ctx) =>
+      ctx.editMessageText(ctx.t('btn.main-menu'), { reply_markup: mainMenu }),
+    );
     composer.on('message', (ctx) =>
       ctx.reply(ctx.t('btn.main-menu'), { reply_markup: mainMenu }),
     );
