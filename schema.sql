@@ -82,6 +82,8 @@ CREATE TABLE IF NOT EXISTS `words` (
   `photo` varchar(255) COLLATE utf8mb4_bin NOT NULL DEFAULT '',
   `word` varchar(255) COLLATE utf8mb4_bin NOT NULL DEFAULT '',
   `hint` varchar(1024) COLLATE utf8mb4_bin NOT NULL DEFAULT '',
+  `repeatedCount` mediumint(8) unsigned NOT NULL DEFAULT '0',
+  `repeating` tinyint(3) unsigned NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   KEY `FK_words_words_collections` (`wordsCollectionId`),
   KEY `word` (`word`),

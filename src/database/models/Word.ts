@@ -3,11 +3,13 @@ import {
   BelongsTo,
   Column,
   DataType,
+  Default,
   ForeignKey,
   Model,
   PrimaryKey,
   Table,
 } from 'sequelize-typescript';
+import { Optional } from 'sequelize/types';
 import { WordsCollection } from './WordsCollection';
 
 export interface WordAttrs {
@@ -16,10 +18,15 @@ export interface WordAttrs {
   photo: string;
   word: string;
   hint: string;
+  repeatedCount: number;
+  repeating: boolean;
 }
 
 @Table({ tableName: 'words', timestamps: false })
-export class Word extends Model<WordAttrs, WordAttrs> implements WordAttrs {
+export class Word
+  extends Model<WordAttrs, Optional<WordAttrs, 'repeatedCount' | 'repeating'>>
+  implements WordAttrs
+{
   @PrimaryKey
   @AutoIncrement
   @Column(DataType.INTEGER)
@@ -39,4 +46,12 @@ export class Word extends Model<WordAttrs, WordAttrs> implements WordAttrs {
 
   @Column(DataType.STRING)
   hint!: string;
+
+  @Default(0)
+  @Column(DataType.INTEGER)
+  repeatedCount!: number;
+
+  @Default(true)
+  @Column(DataType.BOOLEAN)
+  repeating!: boolean;
 }

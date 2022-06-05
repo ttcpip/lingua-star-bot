@@ -102,24 +102,12 @@ export class UserModule {
       readyCollectionsMenu,
     );
 
+    /** back from search word */
     composer.callbackQuery(/goto:bfsw/, async (ctx) => {
       await ctx.editMessageText(ctx.t('u.msg-words-trainer'), {
         reply_markup: wordsTrainerMenu,
       });
     });
-
-    // TODO remove START
-    composer.on(
-      'message:photo',
-      async (ctx) =>
-        await ctx.reply(
-          ctx.message.photo.sort((a, b) => -a.height + b.height)[0].file_id,
-        ),
-    );
-    composer.hears(/\/photo (.+)/, async (ctx) => {
-      await ctx.replyWithPhoto(ctx.match[1]);
-    });
-    // TODO remove END
 
     composer.hears(/\/start (.+)_(\d+)/, async (ctx, next) => {
       const cmd = ctx.match[1];
@@ -155,6 +143,8 @@ export class UserModule {
     composer.on('message', (ctx) =>
       ctx.reply(ctx.t('btn.main-menu'), { reply_markup: mainMenu }),
     );
+
+    composer.on('callback_query', (ctx) => ctx.answerCallbackQuery('🤷‍♂️'));
 
     return composerOuter;
   }
@@ -201,7 +191,9 @@ export class UserModule {
         });
       })
       .row()
-      .submenu(ctxt('u.edu-materials'), UserModule.eduMaterialsMenuId)
+      .submenu(ctxt('u.edu-materials'), UserModule.eduMaterialsMenuId, (ctx) =>
+        ctx.editMessageText(ctx.t('u.msg-edu-materials')),
+      )
       .row()
       .submenu(ctxt('u.settings'), UserModule.settingsMenuId, (ctx) =>
         ctx.editMessageText(
@@ -299,19 +291,86 @@ export class UserModule {
     const menu = new Menu<BotContext>(UserModule.eduMaterialsMenuId, {
       autoAnswer: false,
     })
-      .dynamic((ctx, range) => {
-        const arr = Array.from({ length: 14 }, (_, i) => `[${i + 1}]`);
-        for (let i = 0; i < arr.length; i++) {
-          if (i && i % 5 === 0) range.row();
-
-          const text = arr[i];
-          range.text(`${text}`, (ctx) => ctx.answerCallbackQuery(`${text}`));
-        }
-      })
+      .submenu(ctxt('btn.textbooks'), UserModule.eduMatTextBooksMenuId)
+      .row()
+      .submenu(ctxt('btn.cheat-sheets'), UserModule.eduMatCheatSheetsMenuId)
+      .row()
+      .url(ctxt('btn.dictionaries'), 'https://t.me/lingua_materials/13')
       .row()
       .back(ctxt('btn.back'), (ctx) =>
         ctx.editMessageText(ctx.t('btn.main-menu')),
       );
+
+    menu.register(UserModule.getEduMatTextBooksMenu());
+    menu.register(UserModule.getEduMatCheatSheetsMenu());
+    return menu;
+  }
+
+  private static eduMatTextBooksMenuId = 'm.edu-mat--text-books';
+  private static getEduMatTextBooksMenu() {
+    const menu = new Menu<BotContext>(UserModule.eduMatTextBooksMenuId, {
+      autoAnswer: false,
+    })
+      // these may be not hardcoded (e.g. pulled from a database)
+      .text(`English File:`, (ctx) =>
+        ctx.answerCallbackQuery(ctx.t('u.select-from-btns-below')),
+      )
+      .text(`New English File:`, (ctx) =>
+        ctx.answerCallbackQuery(ctx.t('u.select-from-btns-below')),
+      )
+      .row()
+      .url(`Beginner`, 'https://t.me/lingua_materials/13')
+      .url(`Beginner`, 'https://t.me/lingua_materials/13')
+      .row()
+      .url(`Elementary`, 'https://t.me/lingua_materials/13')
+      .url(`Elementary`, 'https://t.me/lingua_materials/13')
+      .row()
+      .url(`Pre-Intermediate`, 'https://t.me/lingua_materials/13')
+      .url(`Pre-Intermediate`, 'https://t.me/lingua_materials/13')
+      .row()
+      .url(`Intermediate`, 'https://t.me/lingua_materials/13')
+      .url(`Intermediate`, 'https://t.me/lingua_materials/13')
+      .row()
+      .url(`Upper-Intermediate`, 'https://t.me/lingua_materials/13')
+      .url(`Upper-Intermediate`, 'https://t.me/lingua_materials/13')
+      .row()
+      .url(`Advanced`, 'https://t.me/lingua_materials/13')
+      .url(`Advanced`, 'https://t.me/lingua_materials/13')
+      .row()
+      .back(ctxt('btn.back'));
+
+    return menu;
+  }
+
+  private static eduMatCheatSheetsMenuId = 'm.edu-mat--cheat-sheets';
+  private static getEduMatCheatSheetsMenu() {
+    const menu = new Menu<BotContext>(UserModule.eduMatCheatSheetsMenuId, {
+      autoAnswer: false,
+    })
+      // these may be not hardcoded (e.g. pulled from a database)
+      .url(ctxt('btn.irr-verbs'), 'https://t.me/lingua_materials/13')
+      .url(ctxt('btn.irr-nouns'), 'https://t.me/lingua_materials/13')
+      .row()
+      .url(
+        ctxt('btn.prepositions-of-place'),
+        'https://t.me/lingua_materials/13',
+      )
+      .url(ctxt('btn.prepositions-of-time'), 'https://t.me/lingua_materials/13')
+      .row()
+      .url(`for/since/during/until`, 'https://t.me/lingua_materials/13')
+      .row()
+      .url(ctxt('btn.modal-verbs'), 'https://t.me/lingua_materials/13')
+      .row()
+      .url(ctxt('btn.tenses'), 'https://t.me/lingua_materials/13')
+      .row()
+      .url(ctxt('btn.colors'), 'https://t.me/lingua_materials/13')
+      .row()
+      .url(
+        ctxt('btn.direct-inderect-speech'),
+        'https://t.me/lingua_materials/13',
+      )
+      .row()
+      .back(ctxt('btn.back'));
 
     return menu;
   }
@@ -346,15 +405,20 @@ export class UserModule {
           continue;
         }
 
-        await conversation.external({
+        const { id: createdId } = await conversation.external({
           task: () =>
-            Word.create({ word, hint, photo, wordsCollectionId: collectionId }),
+            Word.create({
+              word,
+              hint,
+              photo,
+              wordsCollectionId: collectionId,
+            }),
         });
 
         await ctx.reply(ctx.t('u.msg-added-word', { word }), {
           reply_markup: new InlineKeyboard().text(
             ctx.t(`btn.to-the-word`),
-            `TODO`,
+            `goto:cw${createdId}_0`,
           ),
         });
 
@@ -472,8 +536,8 @@ export class UserModule {
         }
 
         const kb = new InlineKeyboard();
-        for (const { word, hint } of foundWords)
-          kb.text(`${word} - ${hint}`, `TODO`).row();
+        for (const { id, word, hint } of foundWords)
+          kb.text(`${word} - ${hint}`, `goto:cw${id}_0`).row();
         kb.text(ctx.t('btn.back'), `goto:bfsw`);
 
         ctx.editMessageReplyMarkup({ reply_markup: undefined }).catch(noop);
