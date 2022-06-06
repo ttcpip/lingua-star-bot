@@ -502,6 +502,7 @@ export class AdminModule {
         task: () => StudyGroup.update({ name }, { where: { id: grId } }),
       });
 
+      ctx.editMessageReplyMarkup({ reply_markup: undefined }).catch(noop);
       await ctx.reply(
         `Учебная группа переименована в ${html.bold(html.escape(name))}`,
         { reply_markup: new InlineKeyboard().text(`⏪`, `goto:a:sg${grId}`) },

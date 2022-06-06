@@ -11,7 +11,12 @@ export class LocalizationManager {
   async init() {
     this.fluent = new Fluent({
       warningHandler: {
-        handleWarning: (warning) => logger.warn(`Fluent warning`, warning),
+        handleWarning: (warning) =>
+          logger.warn(`Fluent warning`, {
+            type: warning.type,
+            locales: warning.locales,
+            path: warning.path,
+          }),
       },
     });
     const bundleOptions: FluentBundleOptions = { useIsolating: false };

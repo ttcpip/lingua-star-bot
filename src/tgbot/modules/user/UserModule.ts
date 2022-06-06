@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import { createConversation } from '@grammyjs/conversations';
 import { Menu } from '@grammyjs/menu';
 import assert from 'assert';
@@ -18,7 +19,10 @@ import { noop } from '../../../helpers';
 import { BotContext } from '../../BotContext';
 import { BotConversation } from '../../BotConversation';
 import { Collections } from './handlers';
-import { ctxt } from './helpers';
+import { appendUrl, ctxt } from './helpers';
+import logger from '../../../logger';
+
+const tgpostUrl = (id: number) => `https://t.me/lingua_materials/${id}`;
 
 export class UserModule {
   public static getMaxBtnsPerLine = (totalCnt: number) =>
@@ -102,8 +106,8 @@ export class UserModule {
       readyCollectionsMenu,
     );
 
-    /** back from search word */
-    composer.callbackQuery(/goto:bfsw/, async (ctx) => {
+    /** to words trainer menu */
+    composer.callbackQuery(/goto:twtm/, async (ctx) => {
       await ctx.editMessageText(ctx.t('u.msg-words-trainer'), {
         reply_markup: wordsTrainerMenu,
       });
@@ -181,6 +185,34 @@ export class UserModule {
       });
     });
 
+    const reviseWordHandler = UserModule.getReviseWordHandler();
+    /** revise word */
+    composer.callbackQuery(
+      UserModule.reviseWordHandlerRegexp,
+      reviseWordHandler,
+    );
+
+    /** revise word remember controller */
+    composer.callbackQuery(/goto:rwrc(\d+)_(\d)/, async (ctx) => {
+      const wordId = +(ctx.match || [])[1];
+      const remembers = !!+(ctx.match || [])[2];
+
+      const word = await Word.findByPk(wordId);
+      if (!word) return await ctx.answerCallbackQuery(ctx.t('u.no-word-found'));
+
+      if (remembers) await word.increment({ repeatedCount: 1 });
+
+      ctx.match = []; // so that reviseWordHandler don't know about answered word
+      ctx
+        .answerCallbackQuery(
+          remembers
+            ? ctx.t('u.remember-symbol')
+            : ctx.t('u.dont-remember-symbol'),
+        )
+        .catch(noop);
+      await reviseWordHandler(ctx);
+    });
+
     composer.callbackQuery(/goto:main-menu/, async (ctx) =>
       ctx.editMessageText(ctx.t('btn.main-menu'), { reply_markup: mainMenu }),
     );
@@ -188,9 +220,82 @@ export class UserModule {
       ctx.reply(ctx.t('btn.main-menu'), { reply_markup: mainMenu }),
     );
 
-    composer.on('callback_query', (ctx) => ctx.answerCallbackQuery('🤷‍♂️'));
+    composer.on('callback_query', async (ctx) => {
+      logger.warn(`Unhandled callback_query update`, {
+        data: ctx.callbackQuery.data,
+      });
+      await ctx.answerCallbackQuery('🤷‍♂️');
+    });
 
     return composerOuter;
+  }
+
+  static reviseWordHandlerRegexp = /goto:rw(\d+)_(\d)_(\d)/;
+  static getReviseWordHandler() {
+    return async function reviseWordHandler(ctx: BotContext) {
+      const wordId = +(ctx.match || [])[1];
+      const showHint = !!+(ctx.match || [])[2];
+      const showPhoto = !!+(ctx.match || [])[3];
+
+      const toNumBool = (n: unknown) => (n ? 1 : 0);
+
+      let word: Word | null | undefined = null;
+      if (wordId) {
+        word = await Word.findByPk(wordId);
+      } else {
+        const [words] = await Promise.all([
+          Promise.resolve().then(async () =>
+            Word.findAll({
+              where: {
+                repeating: true,
+                wordsCollectionId: (
+                  await WordsCollection.findAll({
+                    attributes: ['id'],
+                    where: { userId: ctx.dbUser.id },
+                  })
+                ).map((e) => e.id),
+              },
+              order: [
+                ['repeatedCount', 'ASC'],
+                ['created', 'DESC'],
+              ],
+              limit: 10,
+            }),
+          ),
+        ]);
+        word = _.sample(words);
+      }
+      if (!word) return await ctx.answerCallbackQuery(ctx.t('u.no-word-found'));
+
+      /** revise word remember controller */
+      const kb = new InlineKeyboard()
+        .text(ctx.t('btn.dont-remember'), `goto:rwrc${word.id}_0}`)
+        .text(ctx.t('btn.remember'), `goto:rwrc${word.id}_1}`)
+        .row();
+
+      if (!showHint)
+        kb.text(
+          ctx.t('btn.show-hint'),
+          `goto:rw${word.id}_1_${toNumBool(showPhoto)}`,
+        );
+      if (!showPhoto && word.photo)
+        kb.text(
+          ctx.t('btn.show-photo'),
+          `goto:rw${word.id}_${toNumBool(showHint)}_1`,
+        );
+
+      kb.row().text(ctx.t('btn.finish'), `goto:twtm`);
+
+      const t = showHint
+        ? ctx.t('u.msg-revise-word-with-hint', {
+            word: html.escape(word.word),
+            hint: html.escape(word.hint),
+          })
+        : ctx.t('u.msg-revise-word', { word: html.escape(word.word) });
+      const tt = showPhoto ? appendUrl(t, word.photo) : t;
+
+      await ctx.editMessageText(tt, { reply_markup: kb });
+    };
   }
 
   private static mainMenuId = 'm.main';
@@ -339,7 +444,9 @@ export class UserModule {
       .row()
       .submenu(ctxt('btn.cheat-sheets'), UserModule.eduMatCheatSheetsMenuId)
       .row()
-      .url(ctxt('btn.dictionaries'), 'https://t.me/lingua_materials/13')
+      .url(ctxt('btn.dictionaries'), tgpostUrl(74))
+      .row()
+      .submenu(ctxt('btn.phrasebooks'), UserModule.eduMatPhrasebooksMenuId)
       .row()
       .back(ctxt('btn.back'), (ctx) =>
         ctx.editMessageText(ctx.t('btn.main-menu')),
@@ -347,6 +454,7 @@ export class UserModule {
 
     menu.register(UserModule.getEduMatTextBooksMenu());
     menu.register(UserModule.getEduMatCheatSheetsMenu());
+    menu.register(UserModule.getPhrasebooksMenu());
     return menu;
   }
 
@@ -363,23 +471,23 @@ export class UserModule {
         ctx.answerCallbackQuery(ctx.t('u.select-from-btns-below')),
       )
       .row()
-      .url(`Beginner`, 'https://t.me/lingua_materials/13')
-      .url(`Beginner`, 'https://t.me/lingua_materials/13')
+      .url(`Beginner`, tgpostUrl(25))
+      .url(`Beginner`, tgpostUrl(49))
       .row()
-      .url(`Elementary`, 'https://t.me/lingua_materials/13')
-      .url(`Elementary`, 'https://t.me/lingua_materials/13')
+      .url(`Elementary`, tgpostUrl(32))
+      .url(`Elementary`, tgpostUrl(52))
       .row()
-      .url(`Pre-Intermediate`, 'https://t.me/lingua_materials/13')
-      .url(`Pre-Intermediate`, 'https://t.me/lingua_materials/13')
+      .url(`Pre-Intermediate`, tgpostUrl(36))
+      .url(`Pre-Intermediate`, tgpostUrl(55))
       .row()
-      .url(`Intermediate`, 'https://t.me/lingua_materials/13')
-      .url(`Intermediate`, 'https://t.me/lingua_materials/13')
+      .url(`Intermediate`, tgpostUrl(39))
+      .url(`Intermediate`, tgpostUrl(59))
       .row()
-      .url(`Upper-Intermediate`, 'https://t.me/lingua_materials/13')
-      .url(`Upper-Intermediate`, 'https://t.me/lingua_materials/13')
+      .url(`Upper-Intermediate`, tgpostUrl(42))
+      .url(`Upper-Intermediate`, tgpostUrl(62))
       .row()
-      .url(`Advanced`, 'https://t.me/lingua_materials/13')
-      .url(`Advanced`, 'https://t.me/lingua_materials/13')
+      .url(`Advanced`, tgpostUrl(45))
+      .url(`Advanced`, tgpostUrl(65))
       .row()
       .back(ctxt('btn.back'));
 
@@ -392,27 +500,38 @@ export class UserModule {
       autoAnswer: false,
     })
       // these may be not hardcoded (e.g. pulled from a database)
-      .url(ctxt('btn.irr-verbs'), 'https://t.me/lingua_materials/13')
-      .url(ctxt('btn.irr-nouns'), 'https://t.me/lingua_materials/13')
+      .url(ctxt('btn.irr-verbs'), tgpostUrl(76))
+      .url(ctxt('btn.irr-nouns'), tgpostUrl(77))
       .row()
-      .url(
-        ctxt('btn.prepositions-of-place'),
-        'https://t.me/lingua_materials/13',
-      )
-      .url(ctxt('btn.prepositions-of-time'), 'https://t.me/lingua_materials/13')
+      .url(ctxt('btn.prepositions-of-place'), tgpostUrl(79))
+      .url(ctxt('btn.prepositions-of-time'), tgpostUrl(82))
       .row()
-      .url(`for/since/during/until`, 'https://t.me/lingua_materials/13')
+      .url(`for/since/during/until`, tgpostUrl(83))
       .row()
-      .url(ctxt('btn.modal-verbs'), 'https://t.me/lingua_materials/13')
+      .url(ctxt('btn.modal-verbs'), tgpostUrl(84))
       .row()
-      .url(ctxt('btn.tenses'), 'https://t.me/lingua_materials/13')
+      .url(ctxt('btn.tenses'), tgpostUrl(85))
       .row()
-      .url(ctxt('btn.colors'), 'https://t.me/lingua_materials/13')
+      .url(ctxt('btn.colors'), tgpostUrl(86))
       .row()
-      .url(
-        ctxt('btn.direct-inderect-speech'),
-        'https://t.me/lingua_materials/13',
-      )
+      .url(ctxt('btn.direct-inderect-speech'), tgpostUrl(87))
+      .row()
+      .back(ctxt('btn.back'));
+
+    return menu;
+  }
+
+  private static eduMatPhrasebooksMenuId = 'm.edu-mat--phrasebooks';
+  private static getPhrasebooksMenu() {
+    const menu = new Menu<BotContext>(UserModule.eduMatPhrasebooksMenuId, {
+      autoAnswer: false,
+    })
+      // these may be not hardcoded (e.g. pulled from a database)
+      .url(`Английский для путешественников`, tgpostUrl(69))
+      .row()
+      .url(`Вы едете в Америку`, tgpostUrl(71))
+      .row()
+      .url(`Общий раговорник`, tgpostUrl(72))
       .row()
       .back(ctxt('btn.back'));
 
@@ -477,7 +596,7 @@ export class UserModule {
     const menu = new Menu<BotContext>(UserModule.wordsTrainerMenuId, {
       autoAnswer: false,
     })
-      .text(ctxt('u.revise-words'))
+      .text(ctxt('u.revise-words'), UserModule.getReviseWordHandler())
       .row()
       .text(ctxt('u.search-words'), async (ctx) => {
         await ctx.conversation.enter(UserModule.searchWordConversationId, {
@@ -542,7 +661,7 @@ export class UserModule {
 
         const cb = response.callbackQuery;
         if (cb && cb.data === 'cancel') {
-          await ctx.editMessageText(oldText || '.', {
+          await response.editMessageText(oldText || '.', {
             reply_markup: oldMarkup,
           });
           return;
@@ -582,7 +701,7 @@ export class UserModule {
         const kb = new InlineKeyboard();
         for (const { id, word, hint } of foundWords)
           kb.text(`${word} - ${hint}`, `goto:cw${id}_0`).row();
-        kb.text(ctx.t('btn.back'), `goto:bfsw`);
+        kb.text(ctx.t('btn.back'), `goto:twtm`);
 
         ctx.editMessageReplyMarkup({ reply_markup: undefined }).catch(noop);
         await ctx.reply(ctx.t('u.msg-search-result'), { reply_markup: kb });

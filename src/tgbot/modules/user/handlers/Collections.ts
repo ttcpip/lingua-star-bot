@@ -23,9 +23,12 @@ export class Collections {
       assert(ctx.match);
       const collectionId = +ctx.match[1];
 
-      const [collection, wordsCount] = await Promise.all([
+      const [collection, wordsCount, repeatingWordsCount] = await Promise.all([
         WordsCollection.findByPk(collectionId),
         Word.count({ where: { wordsCollectionId: collectionId } }),
+        Word.count({
+          where: { wordsCollectionId: collectionId, repeating: true },
+        }),
       ]);
       if (!collection) return await ctx.answerCallbackQuery(ctx.t('u.error'));
 
@@ -52,6 +55,8 @@ export class Collections {
         ctx.t('u.msg-collection', {
           name: html.escape(collection.name),
           wordsCount,
+          repeatingWordsCount,
+          notRepeatingWordsCount: wordsCount - repeatingWordsCount,
         }),
         { reply_markup: kb },
       );
@@ -88,6 +93,8 @@ export class Collections {
         Word.count({ where: { wordsCollectionId } }),
       ]);
       if (!collection) return await ctx.answerCallbackQuery(ctx.t('u.error'));
+      if (thisPageWords.length <= 0)
+        return await ctx.answerCallbackQuery(ctx.t('u.no-words-in-collection'));
 
       const kb = new InlineKeyboard();
       thisPageWords.forEach(({ id, word, hint }) => {
@@ -120,6 +127,7 @@ export class Collections {
       });
     });
 
+    const collectionWordHandlerRegexp = /goto:cw(\d+)_(\d+)/;
     const collectionWordHandler = async (ctx: BotContext) => {
       const wordId = +(ctx.match || [])[1];
       const page = +(ctx.match || [])[2];
@@ -157,8 +165,9 @@ export class Collections {
         { reply_markup: kb },
       );
     };
+
     /** collection word */
-    composer.callbackQuery(/goto:cw(\d+)_(\d+)/, collectionWordHandler);
+    composer.callbackQuery(collectionWordHandlerRegexp, collectionWordHandler);
 
     /** collection word set repeating */
     composer.callbackQuery(/goto:cwsr(\d+)_(\d+)_(\d+)/, async (ctx) => {
@@ -169,6 +178,13 @@ export class Collections {
       const word = await Word.findByPk(wordId);
       if (!word) return await ctx.answerCallbackQuery(ctx.t('u.error'));
 
+      ctx.answerCallbackQuery(
+        repeating
+          ? ctx.t('u.now-repeating-word', { word: html.escape(word.word) })
+          : ctx.t('u.now-dont-repeating-word', {
+              word: html.escape(word.word),
+            }),
+      );
       await word.update({ repeating });
       await collectionWordHandler(ctx);
     });
@@ -181,20 +197,20 @@ export class Collections {
 
       const word = await Word.findByPk(wordId);
       if (!word) return await ctx.answerCallbackQuery(ctx.t('u.error'));
+      const wordsCollectionId = word.wordsCollectionId;
 
       if (!confirm) {
         return await ctx.editMessageText(
           ctx.t('u.delete-word-confirm', { word: word.word }),
           {
-            reply_markup: new InlineKeyboard().text(
-              ctx.t('btn.delete-confirm'),
-              `goto:cwd${wordId}_${page}_1`,
-            ),
+            reply_markup: new InlineKeyboard()
+              .text(ctx.t('btn.delete-confirm'), `goto:cwd${wordId}_${page}_1`)
+              .row()
+              .text(ctx.t('btn.back'), `goto:cw${wordId}_${page}`),
           },
         );
       }
 
-      const wordsCollectionId = word.wordsCollectionId;
       await word.destroy();
 
       await ctx.editMessageText(ctx.t('u.deleted-word'), {

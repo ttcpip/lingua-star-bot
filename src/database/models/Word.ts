@@ -20,11 +20,15 @@ export interface WordAttrs {
   hint: string;
   repeatedCount: number;
   repeating: boolean;
+  created: Date;
 }
 
 @Table({ tableName: 'words', timestamps: false })
 export class Word
-  extends Model<WordAttrs, Optional<WordAttrs, 'repeatedCount' | 'repeating'>>
+  extends Model<
+    WordAttrs,
+    Optional<WordAttrs, 'repeatedCount' | 'repeating' | 'created'>
+  >
   implements WordAttrs
 {
   @PrimaryKey
@@ -54,4 +58,8 @@ export class Word
   @Default(true)
   @Column(DataType.BOOLEAN)
   repeating!: boolean;
+
+  @Default(() => new Date())
+  @Column(DataType.DATE)
+  created!: Date;
 }

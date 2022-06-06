@@ -12,16 +12,20 @@ import logger from '../../../logger';
 import { parseMode } from '@grammyjs/parse-mode';
 import { conversations } from '@grammyjs/conversations';
 import { noop } from '../../../helpers';
+import _ from 'lodash';
 
 export class CommonModule {
   static configureBotCatch(bot: Bot<BotContext>) {
     bot.catch((err) => {
       const logMsg = `From top-level bot.catch:`;
       if (isMessageIsNotModifiedErr(err)) {
-        logger.warn(`${logMsg}: message is not modified`);
+        logger.warn(`${logMsg} message is not modified`);
         if (err?.ctx?.callbackQuery) err.ctx.answerCallbackQuery().catch(noop);
       } else {
-        logger.error(logMsg, err);
+        logger.error(logMsg, {
+          error: err.error,
+          ctx: _.pick(err.ctx, ['update', 'me.id', 'me.username']),
+        });
       }
     });
   }
