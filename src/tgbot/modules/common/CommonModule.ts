@@ -38,7 +38,7 @@ export class CommonModule {
     composer.use(
       session({
         getSessionKey,
-        initial: (): ContextSessionData => ({ favoriteIds: [] }),
+        initial: (): ContextSessionData => ({ lastShowedWordId: NaN }),
       }),
     );
     composer.use(hydrate());

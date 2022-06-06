@@ -4,7 +4,9 @@ import { HydrateApiFlavor, HydrateFlavor } from '@grammyjs/hydrate';
 import { Api, Context, SessionFlavor } from 'grammy';
 import { User } from '../database';
 
-export type ContextSessionData = Record<string, unknown>;
+export type ContextSessionData = {
+  lastShowedWordId: number;
+};
 
 export type BotApi = HydrateApiFlavor<Api>;
 

@@ -259,13 +259,20 @@ export class UserModule {
                 ['repeatedCount', 'ASC'],
                 ['created', 'DESC'],
               ],
-              limit: 10,
+              limit: 15,
             }),
           ),
         ]);
-        word = _.sample(words);
+
+        const randWord = _.sample(
+          ctx.session.lastShowedWordId
+            ? words.filter((e) => e.id !== ctx.session.lastShowedWordId)
+            : words,
+        );
+        word = randWord || words[0];
       }
       if (!word) return await ctx.answerCallbackQuery(ctx.t('u.no-word-found'));
+      ctx.session.lastShowedWordId = word.id;
 
       /** revise word remember controller */
       const kb = new InlineKeyboard()

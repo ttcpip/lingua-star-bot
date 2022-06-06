@@ -584,10 +584,15 @@ export class AdminModule {
               );
             }
           }
-          await ctx.reply(dedent`
+          await ctx.reply(
+            dedent`
             ✅ Рассылка завершена
             Отправлено сообщений: ${sentCnt}
-          `);
+          `,
+            {
+              reply_markup: new InlineKeyboard().text(`⏪`, `goto:a:sg${grId}`),
+            },
+          );
         }
 
         return; // сюда код не должен никогда дойти

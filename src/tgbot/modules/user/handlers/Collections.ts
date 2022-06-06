@@ -18,8 +18,7 @@ export class Collections {
     wordsCollectionsMenu: Menu<BotContext>,
     readyCollectionsMenu: Menu<BotContext>,
   ) {
-    /** collection */
-    composer.callbackQuery(/goto:c(\d+)/, async (ctx) => {
+    const collectionHandler = async (ctx: BotContext) => {
       assert(ctx.match);
       const collectionId = +ctx.match[1];
 
@@ -60,7 +59,9 @@ export class Collections {
         }),
         { reply_markup: kb },
       );
-    });
+    };
+    /** collection */
+    composer.callbackQuery(/goto:c(\d+)/, collectionHandler);
 
     /** edit collection */
     composer.callbackQuery(/goto:ec(\d+)/, async (ctx) => {
@@ -271,6 +272,7 @@ export class Collections {
         ),
         show_alert: true,
       });
+      await collectionHandler(ctx);
     });
 
     /** back from ready collection to ready collections list */
@@ -437,11 +439,14 @@ export class Collections {
       kb.text(ctx.t('btn.back'), `goto:rc${word.wordsCollection.id}_${page}`);
 
       await ctx.editMessageText(
-        ctx.t('u.msg-ready-collection-word', {
-          collectionName: html.escape(word.wordsCollection.name),
-          word: html.escape(word.word),
-          hint: html.escape(word.hint),
-        }),
+        appendUrl(
+          ctx.t('u.msg-ready-collection-word', {
+            collectionName: html.escape(word.wordsCollection.name),
+            word: html.escape(word.word),
+            hint: html.escape(word.hint),
+          }),
+          word.photo,
+        ),
         { reply_markup: kb },
       );
     });
