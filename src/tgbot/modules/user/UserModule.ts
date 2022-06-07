@@ -108,7 +108,7 @@ export class UserModule {
 
     /** to words trainer menu */
     composer.callbackQuery(/goto:twtm/, async (ctx) => {
-      await ctx.editMessageText(ctx.t('u.msg-words-trainer'), {
+      await ctx.editMessageText(ctx.t('msg.words-trainer'), {
         reply_markup: wordsTrainerMenu,
       });
     });
@@ -121,10 +121,10 @@ export class UserModule {
       if (cmd === 'sg') {
         const grId = arg1;
         const gr = await StudyGroup.findByPk(grId);
-        if (!gr) return await ctx.reply(ctx.t('u.error-group-not-found'));
+        if (!gr) return await ctx.reply(ctx.t('err.group-not-found'));
         await ctx.dbUser.update({ studyGroupId: grId });
         await ctx.reply(
-          ctx.t('u.msg-joined-study-group', { name: html.escape(gr.name) }),
+          ctx.t('msg.joined-study-group', { name: html.escape(gr.name) }),
         );
       } else if (cmd === 'wc') {
         const collectionId = arg1;
@@ -132,9 +132,9 @@ export class UserModule {
           include: [Word],
         });
         if (!collection)
-          return await ctx.reply(ctx.t('u.error-collection-not-found'));
+          return await ctx.reply(ctx.t('err.collection-not-found'));
         if (!(collection.words && collection.words.length > 0))
-          return await ctx.reply(ctx.t('u.no-words-in-coll'));
+          return await ctx.reply(ctx.t('err.no-words-in-collection'));
 
         assert(WordsCollection.sequelize);
         let createdCollectionId = NaN;
@@ -156,7 +156,7 @@ export class UserModule {
           );
         });
         await ctx.reply(
-          ctx.t('u.shared-collection-added', {
+          ctx.t('msg.shared-collection-added', {
             name: html.escape(collection.name),
           }),
           {
@@ -180,7 +180,7 @@ export class UserModule {
 
     /** back to words trainer */
     composer.callbackQuery(/goto:baw/, async (ctx) => {
-      await ctx.editMessageText(ctx.t('u.msg-words-trainer'), {
+      await ctx.editMessageText(ctx.t('msg.words-trainer'), {
         reply_markup: wordsTrainerMenu,
       });
     });
@@ -198,7 +198,8 @@ export class UserModule {
       const remembers = !!+(ctx.match || [])[2];
 
       const word = await Word.findByPk(wordId);
-      if (!word) return await ctx.answerCallbackQuery(ctx.t('u.no-word-found'));
+      if (!word)
+        return await ctx.answerCallbackQuery(ctx.t('err.no-word-found'));
 
       if (remembers) await word.increment({ repeatedCount: 1 });
 
@@ -206,18 +207,18 @@ export class UserModule {
       ctx
         .answerCallbackQuery(
           remembers
-            ? ctx.t('u.remember-symbol')
-            : ctx.t('u.dont-remember-symbol'),
+            ? ctx.t('common.remember-symbol')
+            : ctx.t('common.dont-remember-symbol'),
         )
         .catch(noop);
       await reviseWordHandler(ctx);
     });
 
     composer.callbackQuery(/goto:main-menu/, async (ctx) =>
-      ctx.editMessageText(ctx.t('btn.main-menu'), { reply_markup: mainMenu }),
+      ctx.editMessageText(ctx.t('msg.main-menu'), { reply_markup: mainMenu }),
     );
     composer.on('message', (ctx) =>
-      ctx.reply(ctx.t('btn.main-menu'), { reply_markup: mainMenu }),
+      ctx.reply(ctx.t('msg.main-menu'), { reply_markup: mainMenu }),
     );
 
     composer.on('callback_query', async (ctx) => {
@@ -271,7 +272,8 @@ export class UserModule {
         );
         word = randWord || words[0];
       }
-      if (!word) return await ctx.answerCallbackQuery(ctx.t('u.no-word-found'));
+      if (!word)
+        return await ctx.answerCallbackQuery(ctx.t('err.no-word-found'));
       ctx.session.lastShowedWordId = word.id;
 
       /** revise word remember controller */
@@ -294,11 +296,11 @@ export class UserModule {
       kb.row().text(ctx.t('btn.finish'), `goto:twtm`);
 
       const t = showHint
-        ? ctx.t('u.msg-revise-word-with-hint', {
+        ? ctx.t('msg.revise-word-with-hint', {
             word: html.escape(word.word),
             hint: html.escape(word.hint),
           })
-        : ctx.t('u.msg-revise-word', { word: html.escape(word.word) });
+        : ctx.t('msg.revise-word', { word: html.escape(word.word) });
       const tt = showPhoto ? appendUrl(t, word.photo) : t;
 
       await ctx.editMessageText(tt, { reply_markup: kb });
@@ -313,25 +315,25 @@ export class UserModule {
     const menu = new Menu<BotContext>(UserModule.mainMenuId, {
       autoAnswer: false,
     })
-      .submenu(ctxt('u.words-trainer'), UserModule.wordsTrainerMenuId, (ctx) =>
-        ctx.editMessageText(ctx.t('u.msg-words-trainer')),
+      .submenu(
+        ctxt('btn.words-trainer'),
+        UserModule.wordsTrainerMenuId,
+        (ctx) => ctx.editMessageText(ctx.t('msg.words-trainer')),
       )
-      .text(ctxt('u.homework'), async (ctx) => {
+      .text(ctxt('btn.homework'), async (ctx) => {
         const studyGroup = await ctx.dbUser.$get('studyGroup');
         if (!studyGroup)
           return await await ctx.answerCallbackQuery({
-            text: ctx.t('u.msg-no-study-group'),
+            text: ctx.t('msg.no-study-group'),
             show_alert: true,
           });
 
         const homeWorkEntries = await studyGroup.$get('homeWorkEntries');
         if (homeWorkEntries.length <= 0)
-          return await await ctx.answerCallbackQuery(
-            ctx.t('u.msg-no-homework'),
-          );
+          return await await ctx.answerCallbackQuery(ctx.t('msg.no-homework'));
 
         ctx
-          .editMessageText(ctx.t('u.msg-homework'), { reply_markup: undefined })
+          .editMessageText(ctx.t('msg.homework'), { reply_markup: undefined })
           .catch(noop);
 
         assert(ctx.chat);
@@ -342,18 +344,20 @@ export class UserModule {
           .setZone(settingsManager.get().displayTimeZone)
           .setLocale(ctx.dbUser.getLangCode())
           .toFormat('d MMMM, HH:mm');
-        await ctx.reply(ctx.t('u.msg-homework-last-update', { datetime }), {
+        await ctx.reply(ctx.t('msg.homework-last-update', { datetime }), {
           reply_markup: menu.at(UserModule.fromHomeWorkBackToMainMenuMenuId),
         });
       })
       .row()
-      .submenu(ctxt('u.edu-materials'), UserModule.eduMaterialsMenuId, (ctx) =>
-        ctx.editMessageText(ctx.t('u.msg-edu-materials')),
+      .submenu(
+        ctxt('btn.edu-materials'),
+        UserModule.eduMaterialsMenuId,
+        (ctx) => ctx.editMessageText(ctx.t('msg.edu-materials')),
       )
       .row()
-      .submenu(ctxt('u.settings'), UserModule.settingsMenuId, (ctx) =>
+      .submenu(ctxt('btn.settings'), UserModule.settingsMenuId, (ctx) =>
         ctx.editMessageText(
-          ctx.t('u.msg-settings', { name: html.escape(ctx.dbUser.name) }),
+          ctx.t('msg.settings', { name: html.escape(ctx.dbUser.name) }),
         ),
       );
 
@@ -374,7 +378,7 @@ export class UserModule {
       },
     ).text(ctxt('btn.to-main-menu'), async (ctx) => {
       ctx.menu.close();
-      await ctx.reply(ctx.t('btn.main-menu'), { reply_markup: mainMenu });
+      await ctx.reply(ctx.t('msg.main-menu'), { reply_markup: mainMenu });
     });
 
     return menu;
@@ -385,7 +389,7 @@ export class UserModule {
     const menu = new Menu<BotContext>(UserModule.settingsMenuId, {
       autoAnswer: false,
     })
-      .text(ctxt('u.change-lang'), async (ctx) => {
+      .text(ctxt('btn.change-lang'), async (ctx) => {
         ctx.dbUser.lang =
           ctx.dbUser.lang === language.ru ? language.en : language.ru;
         await ctx.dbUser.save();
@@ -393,18 +397,18 @@ export class UserModule {
         await ctx.fluent.renegotiateLocale();
 
         await ctx.editMessageText(
-          ctx.t('u.msg-settings', { name: html.escape(ctx.dbUser.name) }),
+          ctx.t('msg.settings', { name: html.escape(ctx.dbUser.name) }),
         );
       })
       .row()
-      .text(ctxt('u.edit-name'), (ctx) =>
+      .text(ctxt('btn.edit-name'), (ctx) =>
         ctx.conversation.enter(UserModule.getNameConversationId, {
           overwrite: true,
         }),
       )
       .row()
       .back(ctxt('btn.back'), (ctx) =>
-        ctx.editMessageText(ctx.t('btn.main-menu')),
+        ctx.editMessageText(ctx.t('msg.main-menu')),
       );
 
     return menu;
@@ -416,7 +420,7 @@ export class UserModule {
     return async (conversation: BotConversation, ctx: BotContext) => {
       const oldMarkup = ctx.callbackQuery?.message?.reply_markup;
 
-      await ctx.editMessageText(ctx.t('u.send-new-name'), {
+      await ctx.editMessageText(ctx.t('msg.edit-name'), {
         reply_markup: undefined,
       });
 
@@ -425,7 +429,7 @@ export class UserModule {
         const response = await conversation.waitFor('message:text');
         const text = response.message.text;
         if (!(text && text.length <= 255)) {
-          await ctx.reply(ctx.t('u.invalid-name'));
+          await ctx.reply(ctx.t('err.invalid-name'));
           continue;
         }
 
@@ -436,7 +440,7 @@ export class UserModule {
       await conversation.external({ task: () => ctx.dbUser.save() });
 
       await ctx.reply(
-        ctx.t('u.msg-settings', { name: html.escape(ctx.dbUser.name) }),
+        ctx.t('msg.settings', { name: html.escape(ctx.dbUser.name) }),
         { reply_markup: oldMarkup },
       );
     };
@@ -456,7 +460,7 @@ export class UserModule {
       .submenu(ctxt('btn.phrasebooks'), UserModule.eduMatPhrasebooksMenuId)
       .row()
       .back(ctxt('btn.back'), (ctx) =>
-        ctx.editMessageText(ctx.t('btn.main-menu')),
+        ctx.editMessageText(ctx.t('msg.main-menu')),
       );
 
     menu.register(UserModule.getEduMatTextBooksMenu());
@@ -472,10 +476,10 @@ export class UserModule {
     })
       // these may be not hardcoded (e.g. pulled from a database)
       .text(`English File:`, (ctx) =>
-        ctx.answerCallbackQuery(ctx.t('u.select-from-btns-below')),
+        ctx.answerCallbackQuery(ctx.t('err.select-from-btns-below')),
       )
       .text(`New English File:`, (ctx) =>
-        ctx.answerCallbackQuery(ctx.t('u.select-from-btns-below')),
+        ctx.answerCallbackQuery(ctx.t('err.select-from-btns-below')),
       )
       .row()
       .url(`Beginner`, tgpostUrl(25))
@@ -521,7 +525,7 @@ export class UserModule {
       .row()
       .url(ctxt('btn.colors'), tgpostUrl(86))
       .row()
-      .url(ctxt('btn.direct-inderect-speech'), tgpostUrl(87))
+      .url(ctxt('btn.direct-indirect-speech'), tgpostUrl(87))
       .row()
       .back(ctxt('btn.back'));
 
@@ -552,7 +556,7 @@ export class UserModule {
       assert(ctx.match && +ctx.match[1]);
       const collectionId = +ctx.match[1];
 
-      await ctx.editMessageText(ctx.t('u.msg-send-word'), {
+      await ctx.editMessageText(ctx.t('msg.send-word'), {
         reply_markup: undefined,
       });
 
@@ -563,15 +567,15 @@ export class UserModule {
           .map((e) => e.trim());
 
         if (!(word && word.length <= 255)) {
-          await ctx.reply(ctx.t('u.msg-invalid-word'));
+          await ctx.reply(ctx.t('msg.invalid-word'));
           continue;
         }
         if (!(hint && hint.length <= 1024)) {
-          await ctx.reply(ctx.t('u.msg-invalid-hint'));
+          await ctx.reply(ctx.t('msg.invalid-hint'));
           continue;
         }
         if (photo && !(photo.length <= 255 && isWebUri(photo))) {
-          await ctx.reply(ctx.t('u.msg-invalid-photo'));
+          await ctx.reply(ctx.t('msg.invalid-photo'));
           continue;
         }
 
@@ -585,7 +589,7 @@ export class UserModule {
             }),
         });
 
-        await ctx.reply(ctx.t('u.msg-added-word', { word }), {
+        await ctx.reply(ctx.t('msg.added-word', { word }), {
           reply_markup: new InlineKeyboard().text(
             ctx.t(`btn.to-the-word`),
             `goto:cw${createdId}_0`,
@@ -603,18 +607,18 @@ export class UserModule {
     const menu = new Menu<BotContext>(UserModule.wordsTrainerMenuId, {
       autoAnswer: false,
     })
-      .text(ctxt('u.revise-words'), UserModule.getReviseWordHandler())
+      .text(ctxt('btn.revise-words'), UserModule.getReviseWordHandler())
       .row()
-      .text(ctxt('u.search-words'), async (ctx) => {
+      .text(ctxt('btn.search-words'), async (ctx) => {
         await ctx.conversation.enter(UserModule.searchWordConversationId, {
           overwrite: true,
         });
       })
-      .text(ctxt('u.add-word'), async (ctx) => {
+      .text(ctxt('btn.add-word'), async (ctx) => {
         const userCollections = await ctx.dbUser.$get('wordsCollections');
         if (userCollections.length <= 0)
           return await ctx.answerCallbackQuery({
-            text: ctx.t('u.no-collections'),
+            text: ctx.t('err.no-collections'),
             show_alert: true,
           });
 
@@ -628,19 +632,19 @@ export class UserModule {
         });
         kb.row().text(ctx.t('btn.back'), `goto:baw`);
 
-        await ctx.editMessageText(ctx.t('u.msg-add-words'), {
+        await ctx.editMessageText(ctx.t('msg.add-words'), {
           reply_markup: kb,
         });
       })
       .row()
       .submenu(
-        ctxt('u.words-collections'),
+        ctxt('btn.words-collections'),
         Collections.wordsCollectionsMenuId,
-        (ctx) => ctx.editMessageText(ctx.t('u.msg-words-collections')),
+        (ctx) => ctx.editMessageText(ctx.t('msg.words-collections')),
       )
       .row()
       .back(ctxt('btn.back'), (ctx) =>
-        ctx.editMessageText(ctx.t('btn.main-menu')),
+        ctx.editMessageText(ctx.t('msg.main-menu')),
       );
 
     menu.register(wordsCollectionsMenu);
@@ -656,7 +660,7 @@ export class UserModule {
       const oldMarkup = ctx.callbackQuery?.message?.reply_markup;
 
       const cancelKb = new InlineKeyboard().text(ctx.t('btn.cancel'), 'cancel');
-      await ctx.editMessageText(ctx.t('u.msg-search-word'), {
+      await ctx.editMessageText(ctx.t('msg.search-word'), {
         reply_markup: cancelKb,
       });
 
@@ -676,7 +680,7 @@ export class UserModule {
 
         const t = response.message?.text;
         if (!(t && t.length <= 255)) {
-          await ctx.reply(ctx.t('u.msg-invalid-word'));
+          await ctx.reply(ctx.t('msg.invalid-word'));
           continue;
         }
 
@@ -699,7 +703,7 @@ export class UserModule {
             }),
         });
         if (foundWords.length <= 0) {
-          await ctx.reply(ctx.t('u.msg-nothing-found'), {
+          await ctx.reply(ctx.t('msg.nothing-found'), {
             reply_markup: cancelKb,
           });
           continue;
@@ -711,7 +715,7 @@ export class UserModule {
         kb.text(ctx.t('btn.back'), `goto:twtm`);
 
         ctx.editMessageReplyMarkup({ reply_markup: undefined }).catch(noop);
-        await ctx.reply(ctx.t('u.msg-search-result'), { reply_markup: kb });
+        await ctx.reply(ctx.t('msg.search-result'), { reply_markup: kb });
 
         return;
         // eslint-disable-next-line no-constant-condition

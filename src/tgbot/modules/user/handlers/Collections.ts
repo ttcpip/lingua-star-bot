@@ -29,7 +29,7 @@ export class Collections {
           where: { wordsCollectionId: collectionId, repeating: true },
         }),
       ]);
-      if (!collection) return await ctx.answerCallbackQuery(ctx.t('u.error'));
+      if (!collection) return await ctx.answerCallbackQuery(ctx.t('err.error'));
 
       const shareCollectionUrl = `t.me/${ctx.me.username}?start=wc_${collectionId}`;
       const kb = new InlineKeyboard()
@@ -51,7 +51,7 @@ export class Collections {
         .row()
         .text(ctx.t('btn.back'), `goto:tc`);
       await ctx.editMessageText(
-        ctx.t('u.msg-collection', {
+        ctx.t('msg.collection', {
           name: html.escape(collection.name),
           wordsCount,
           repeatingWordsCount,
@@ -69,7 +69,7 @@ export class Collections {
       const collectionId = +ctx.match[1];
 
       const collection = await WordsCollection.findByPk(collectionId);
-      if (!collection) return await ctx.answerCallbackQuery(ctx.t('u.error'));
+      if (!collection) return await ctx.answerCallbackQuery(ctx.t('err.error'));
 
       await ctx.conversation.enter(Collections.editCollectionConversationId, {
         overwrite: true,
@@ -93,9 +93,9 @@ export class Collections {
         }),
         Word.count({ where: { wordsCollectionId } }),
       ]);
-      if (!collection) return await ctx.answerCallbackQuery(ctx.t('u.error'));
+      if (!collection) return await ctx.answerCallbackQuery(ctx.t('err.error'));
       if (thisPageWords.length <= 0)
-        return await ctx.answerCallbackQuery(ctx.t('u.no-words-in-collection'));
+        return await ctx.answerCallbackQuery(ctx.t('err.no-words-in-collection'));
 
       const kb = new InlineKeyboard();
       thisPageWords.forEach(({ id, word, hint }) => {
@@ -123,7 +123,7 @@ export class Collections {
 
       kb.text(ctx.t('btn.back'), `goto:c${wordsCollectionId}`);
 
-      await ctx.editMessageText(ctx.t('u.msg-collection-word-list'), {
+      await ctx.editMessageText(ctx.t('msg.collection-word-list'), {
         reply_markup: kb,
       });
     });
@@ -137,7 +137,7 @@ export class Collections {
         Word.findByPk(wordId, { include: [WordsCollection] }),
       ]);
       if (!(word && word.wordsCollection))
-        return await ctx.answerCallbackQuery(ctx.t('u.error'));
+        return await ctx.answerCallbackQuery(ctx.t('err.error'));
 
       const kb = new InlineKeyboard()
         .text(
@@ -155,7 +155,7 @@ export class Collections {
 
       await ctx.editMessageText(
         appendUrl(
-          ctx.t('u.msg-collection-word', {
+          ctx.t('msg.collection-word', {
             collectionName: html.escape(word.wordsCollection.name),
             word: html.escape(word.word),
             hint: html.escape(word.hint),
@@ -177,12 +177,12 @@ export class Collections {
       const repeating = !!+(ctx.match || [])[3];
 
       const word = await Word.findByPk(wordId);
-      if (!word) return await ctx.answerCallbackQuery(ctx.t('u.error'));
+      if (!word) return await ctx.answerCallbackQuery(ctx.t('err.error'));
 
       ctx.answerCallbackQuery(
         repeating
-          ? ctx.t('u.now-repeating-word', { word: html.escape(word.word) })
-          : ctx.t('u.now-dont-repeating-word', {
+          ? ctx.t('msg.now-repeating-word', { word: html.escape(word.word) })
+          : ctx.t('msg.now-dont-repeating-word', {
               word: html.escape(word.word),
             }),
       );
@@ -197,12 +197,12 @@ export class Collections {
       const confirm = !!+(ctx.match || [])[3];
 
       const word = await Word.findByPk(wordId);
-      if (!word) return await ctx.answerCallbackQuery(ctx.t('u.error'));
+      if (!word) return await ctx.answerCallbackQuery(ctx.t('err.error'));
       const wordsCollectionId = word.wordsCollectionId;
 
       if (!confirm) {
         return await ctx.editMessageText(
-          ctx.t('u.delete-word-confirm', { word: word.word }),
+          ctx.t('msg.delete-word-confirm', { word: word.word }),
           {
             reply_markup: new InlineKeyboard()
               .text(ctx.t('btn.delete-confirm'), `goto:cwd${wordId}_${page}_1`)
@@ -214,7 +214,7 @@ export class Collections {
 
       await word.destroy();
 
-      await ctx.editMessageText(ctx.t('u.deleted-word'), {
+      await ctx.editMessageText(ctx.t('msg.deleted-word'), {
         reply_markup: new InlineKeyboard().text(
           ctx.t('btn.to-the-ready-collection'),
           `goto:c${wordsCollectionId}`,
@@ -232,11 +232,11 @@ export class Collections {
         WordsCollection.findByPk(collectionId),
         Word.count({ where: { wordsCollectionId: collectionId } }),
       ]);
-      if (!collection) return await ctx.answerCallbackQuery(ctx.t('u.error'));
+      if (!collection) return await ctx.answerCallbackQuery(ctx.t('err.error'));
 
       if (!confirmed && wordsCount > 0) {
         return await ctx.editMessageText(
-          ctx.t('u.delete-collection-confirm', {
+          ctx.t('msg.delete-collection-confirm', {
             name: html.escape(collection.name),
             wordsCount,
           }),
@@ -251,8 +251,8 @@ export class Collections {
 
       await collection.destroy();
 
-      ctx.answerCallbackQuery(ctx.t(`u.deleted-collection`)).catch(noop);
-      await ctx.editMessageText(ctx.t('u.msg-words-collections'), {
+      ctx.answerCallbackQuery(ctx.t(`msg.deleted-collection`)).catch(noop);
+      await ctx.editMessageText(ctx.t('msg.words-collections'), {
         reply_markup: wordsCollectionsMenu,
       });
     });
@@ -267,8 +267,8 @@ export class Collections {
       await ctx.answerCallbackQuery({
         text: ctx.t(
           repeating
-            ? 'u.set-repeat-whole-collection'
-            : 'u.set-dont-repeat-whole-collection',
+            ? 'msg.set-repeat-whole-collection'
+            : 'msg.set-dont-repeat-whole-collection',
         ),
         show_alert: true,
       });
@@ -277,7 +277,7 @@ export class Collections {
 
     /** back from ready collection to ready collections list */
     composer.callbackQuery(/goto:brc/, async (ctx) => {
-      await ctx.editMessageText(ctx.t('u.msg-ready-collections'), {
+      await ctx.editMessageText(ctx.t('msg.ready-collections'), {
         reply_markup: readyCollectionsMenu,
       });
     });
@@ -362,7 +362,7 @@ export class Collections {
         await getReadyCollectionInfo(ctx, wordsCollectionId, page);
 
       await ctx.editMessageText(
-        ctx.t('u.msg-ready-collection', {
+        ctx.t('msg.ready-collection', {
           name: html.escape(wordsCollection.name),
           wordsCount: totalWordsCnt,
         }),
@@ -378,12 +378,12 @@ export class Collections {
       const collection = await WordsCollection.findByPk(wordsCollectionId, {
         include: [Word],
       });
-      if (!collection) return await ctx.answerCallbackQuery(ctx.t('u.error'));
+      if (!collection) return await ctx.answerCallbackQuery(ctx.t('err.error'));
       if (
         !collection.words ||
         (collection.words && collection.words.length <= 0)
       )
-        return await ctx.answerCallbackQuery(ctx.t('u.no-words-in-coll'));
+        return await ctx.answerCallbackQuery(ctx.t('err.no-words-in-collection'));
 
       assert(WordsCollection.sequelize);
       await WordsCollection.sequelize.transaction(async (transaction) => {
@@ -405,7 +405,7 @@ export class Collections {
 
       const { kb } = await getReadyCollectionInfo(ctx, wordsCollectionId, page);
 
-      ctx.answerCallbackQuery(ctx.t('u.collection-added')).catch(noop);
+      ctx.answerCallbackQuery(ctx.t('msg.collection-added')).catch(noop);
       await ctx.editMessageReplyMarkup({ reply_markup: kb });
     });
 
@@ -419,10 +419,10 @@ export class Collections {
         ctx.dbUser.$get('wordsCollections'),
       ]);
       if (!(word && word.wordsCollection))
-        return await ctx.answerCallbackQuery(ctx.t('u.error'));
+        return await ctx.answerCallbackQuery(ctx.t('err.error'));
       if (userCollections.length <= 0)
         return await ctx.answerCallbackQuery({
-          text: ctx.t('u.no-collections'),
+          text: ctx.t('err.no-collections'),
           show_alert: true,
         });
 
@@ -440,7 +440,7 @@ export class Collections {
 
       await ctx.editMessageText(
         appendUrl(
-          ctx.t('u.msg-ready-collection-word', {
+          ctx.t('msg.ready-collection-word', {
             collectionName: html.escape(word.wordsCollection.name),
             word: html.escape(word.word),
             hint: html.escape(word.hint),
@@ -457,7 +457,7 @@ export class Collections {
       const wordId = +(ctx.match || [])[2];
 
       const word = await Word.findByPk(wordId);
-      if (!word) return await ctx.answerCallbackQuery(ctx.t('u.error'));
+      if (!word) return await ctx.answerCallbackQuery(ctx.t('err.error'));
 
       await Word.create({
         word: word.word,
@@ -474,14 +474,14 @@ export class Collections {
           `goto:rc${word.wordsCollectionId}_${1}`,
         );
 
-      await ctx.editMessageText(ctx.t('u.msg-ready-collection-word-added'), {
+      await ctx.editMessageText(ctx.t('msg.ready-collection-word-added'), {
         reply_markup: kb,
       });
     });
 
     /** to collections */
     composer.callbackQuery(/goto:tc/, async (ctx) => {
-      await ctx.editMessageText(ctx.t('u.msg-words-collections'), {
+      await ctx.editMessageText(ctx.t('msg.words-collections'), {
         reply_markup: wordsCollectionsMenu,
       });
     });
@@ -493,9 +493,9 @@ export class Collections {
       autoAnswer: false,
     })
       .submenu(
-        ctxt('u.ready-collections'),
+        ctxt('btn.ready-collections'),
         Collections.readyCollectionsMenuId,
-        (ctx) => ctx.editMessageText(ctx.t('u.msg-ready-collections')),
+        (ctx) => ctx.editMessageText(ctx.t('msg.ready-collections')),
       )
       .row()
       .dynamic(async (ctx, range) => {
@@ -510,7 +510,7 @@ export class Collections {
       })
       .row()
       .back(ctxt('btn.back'), (ctx) =>
-        ctx.editMessageText(ctx.t('u.msg-words-trainer')),
+        ctx.editMessageText(ctx.t('msg.words-trainer')),
       )
       .text(ctxt('btn.create-collection'), (ctx) =>
         ctx.conversation.enter(Collections.createCollectionConversationId, {
@@ -541,7 +541,7 @@ export class Collections {
       })
       .row()
       .back(ctxt('btn.back'), (ctx) =>
-        ctx.editMessageText(ctx.t('u.msg-words-collections')),
+        ctx.editMessageText(ctx.t('msg.words-collections')),
       );
 
     return menu;
@@ -553,7 +553,7 @@ export class Collections {
     return async (conversation: BotConversation, ctx: BotContext) => {
       // const oldMarkup = ctx.callbackQuery?.message?.reply_markup;
 
-      await ctx.editMessageText(ctx.t('u.send-new-collection-name'), {
+      await ctx.editMessageText(ctx.t('msg.send-new-collection-name'), {
         reply_markup: undefined,
       });
 
@@ -562,7 +562,7 @@ export class Collections {
         const response = await conversation.waitFor('message:text');
         const text = response.message.text;
         if (!(text && text.length <= 255)) {
-          await ctx.reply(ctx.t('u.invalid-new-collection-name'));
+          await ctx.reply(ctx.t('err.invalid-new-collection-name'));
           continue;
         }
 
@@ -578,7 +578,7 @@ export class Collections {
           }),
       });
 
-      await ctx.reply(ctx.t('u.collection-created'), {
+      await ctx.reply(ctx.t('msg.collection-created'), {
         reply_markup: new InlineKeyboard().text(ctx.t('btn.back'), `goto:tc`),
       });
     };
@@ -591,7 +591,7 @@ export class Collections {
       assert(ctx.match && +ctx.match[1]);
       const collectionId = +ctx.match[1];
 
-      await ctx.editMessageText(ctx.t('u.send-collection-new-name'), {
+      await ctx.editMessageText(ctx.t('msg.send-collection-new-name'), {
         reply_markup: undefined,
       });
 
@@ -600,7 +600,7 @@ export class Collections {
         const response = await conversation.waitFor('message:text');
         const text = response.message.text;
         if (!(text && text.length <= 255)) {
-          await ctx.reply(ctx.t('u.invalid-new-collection-name'));
+          await ctx.reply(ctx.t('err.invalid-new-collection-name'));
           continue;
         }
 
@@ -617,7 +617,7 @@ export class Collections {
           ),
       });
 
-      await ctx.reply(ctx.t('u.collection-edited'), {
+      await ctx.reply(ctx.t('msg.collection-edited'), {
         reply_markup: new InlineKeyboard().text(
           ctx.t(`btn.back`),
           `goto:c${collectionId}`,
