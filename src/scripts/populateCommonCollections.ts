@@ -32,10 +32,10 @@ async function main() {
     logger.info(`Created collection: ${collectionName}`);
 
     await Word.bulkCreate(
-      collectionWords.map(([word, hint]) => ({
+      collectionWords.map(([word, hint, photo]) => ({
         word,
         hint,
-        photo: '',
+        photo: photo || '',
         wordsCollectionId: createdCollection.id,
         repeating: false,
       })),
@@ -473,18 +473,29 @@ function getData() {
       [
         'Elephant',
         'Слон, большой серый с ушами и длинным носом; big ears and long nose',
+        'https://static.dw.com/image/45665028_303.jpg',
       ],
-      ['Tiger', 'Тигр, большой полосатый кот; big cat with stripes'],
+      [
+        'Tiger',
+        'Тигр, большой полосатый кот; big cat with stripes',
+        'https://files.worldwildlife.org/wwfcmsprod/images/Tiger_resting_Bandhavgarh_National_Park_India/hero_small/6aofsvaglm_Medium_WW226365.jpg',
+      ],
       [
         'Squirrel',
         'Белка, маленькая, рыжая с пушистым хвостом; little animal with furry tail',
+        'https://upload.wikimedia.org/wikipedia/commons/1/15/EasternGraySquirrel_GAm.jpg',
       ],
       [
         'Horse',
         'Лошадь, на ней ездят и ее запрягают; big animal, was used to ride on and carry things',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Horse_in_field.jpg/640px-Horse_in_field.jpg',
       ],
       ['Rhinoceros', 'Носорог; big gray animal with a horn on its nose'],
-      ['Frog', 'Лягушка, зеленая, квакает; little, green, eats mosquitos'],
+      [
+        'Frog',
+        'Лягушка, зеленая, квакает; little, green, eats mosquitos',
+        'https://upload.wikimedia.org/wikipedia/commons/e/ea/Marsh_frog_%28Pelophylax_ridibundus%29.jpg',
+      ],
       [
         'Butterfly',
         'Бабочка, маленькая с яркими крыльями; small insect with colorful wings',
@@ -492,17 +503,30 @@ function getData() {
       [
         'Monkey',
         'Обезьяна, от нее произошел человек; funny animal who climbs the trees, human ancestor',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Bonnet_macaque_%28Macaca_radiata%29_Photograph_By_Shantanu_Kuveskar.jpg/220px-Bonnet_macaque_%28Macaca_radiata%29_Photograph_By_Shantanu_Kuveskar.jpg',
       ],
       ['Anteater', 'Муравьед, есть муравьев; animal who eats ants'],
-      ['Eagle', 'Орел, хищная птица; meat eating bird, american coin'],
+      [
+        'Eagle',
+        'Орел, хищная птица; meat eating bird, american coin',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Eagle_on_roots_-_crop_3_%28430008061%29.jpg/800px-Eagle_on_roots_-_crop_3_%28430008061%29.jpg',
+      ],
       ['Sparrow', 'Воробей, маленькая городская птичка; small city bird'],
       ['Moose', 'Лось, символ Скандинавии; symbol of Scandinavia'],
       ['Deer', 'Олень, Бэмби; Bambi'],
       ['Bear', 'Медведь, символ России; symbol of Russia'],
       ['Sloth', 'Ленивец, медленное животное; very slow animal'],
       ['Raccoon', 'Енот, полоскун; cute animal who washes your socks'],
-      ['Turtle', 'Черепаха, животное с панцирем; hides in own shell'],
-      ['Owl', 'Сова, ночная хищная птица; bird which hunts at night'],
+      [
+        'Turtle',
+        'Черепаха, животное с панцирем; hides in own shell',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Florida_Box_Turtle_Digon3_re-edited.jpg/1200px-Florida_Box_Turtle_Digon3_re-edited.jpg',
+      ],
+      [
+        'Owl',
+        'Сова, ночная хищная птица; bird which hunts at night',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Northern_Spotted_Owl.USFWS.jpg/640px-Northern_Spotted_Owl.USFWS.jpg',
+      ],
     ],
     'Adverbs and expressions': [
       ['Thereby', 'Тем самым, таким образом; as a result of this action'],

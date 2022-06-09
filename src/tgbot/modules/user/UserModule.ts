@@ -420,7 +420,7 @@ export class UserModule {
     return async (conversation: BotConversation, ctx: BotContext) => {
       const oldMarkup = ctx.callbackQuery?.message?.reply_markup;
 
-      await ctx.editMessageText(ctx.t('msg.edit-name'), {
+      await ctx.editMessageText(ctx.t('btn.edit-name'), {
         reply_markup: undefined,
       });
 

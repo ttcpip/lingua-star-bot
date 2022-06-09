@@ -95,7 +95,9 @@ export class Collections {
       ]);
       if (!collection) return await ctx.answerCallbackQuery(ctx.t('err.error'));
       if (thisPageWords.length <= 0)
-        return await ctx.answerCallbackQuery(ctx.t('err.no-words-in-collection'));
+        return await ctx.answerCallbackQuery(
+          ctx.t('err.no-words-in-collection'),
+        );
 
       const kb = new InlineKeyboard();
       thisPageWords.forEach(({ id, word, hint }) => {
@@ -383,7 +385,9 @@ export class Collections {
         !collection.words ||
         (collection.words && collection.words.length <= 0)
       )
-        return await ctx.answerCallbackQuery(ctx.t('err.no-words-in-collection'));
+        return await ctx.answerCallbackQuery(
+          ctx.t('err.no-words-in-collection'),
+        );
 
       assert(WordsCollection.sequelize);
       await WordsCollection.sequelize.transaction(async (transaction) => {
