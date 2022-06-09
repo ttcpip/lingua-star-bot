@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node dist/main.js",
     "dev": "tsc-watch --noClear --onSuccess \"node ./dist/main.js\"",
-    "lint": "eslint . --ext .ts --fix"
+    "lint": "eslint . --ext .ts --fix",
+    "build": "tsc"
   },
   "dependencies": {
     "@grammyjs/auto-retry": "^1.1.1",
