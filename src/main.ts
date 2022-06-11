@@ -45,8 +45,8 @@ async function main() {
     localizationManager,
   );
   await tgBotManager.start();
-  await tgBotManager.notify();
   logger.info(`TgBotManager bot: @${tgBotManager.getBotUsername()}`);
+  await tgBotManager.notify();
   logger.info(`TgBotManager initialization done`);
 
   logger.info(`↑↑↑ The app started! ↑↑↑`);

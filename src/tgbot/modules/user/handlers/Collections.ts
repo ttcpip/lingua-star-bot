@@ -90,6 +90,7 @@ export class Collections {
           offset:
             Collections.MAX_WORDS_PER_PAGE * page -
             Collections.MAX_WORDS_PER_PAGE,
+          order: [['word', 'ASC']],
         }),
         Word.count({ where: { wordsCollectionId } }),
       ]);
@@ -304,6 +305,7 @@ export class Collections {
           offset:
             Collections.MAX_WORDS_PER_PAGE * page -
             Collections.MAX_WORDS_PER_PAGE,
+          order: [['word', 'ASC']],
         }),
         ctx.dbUser.$get('wordsCollections', { attributes: ['id'] }),
         Word.count({ where: { wordsCollectionId } }),

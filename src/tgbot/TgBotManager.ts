@@ -35,7 +35,14 @@ export class TgBotManager {
 
     this.applyAllHandlers();
 
-    const runner = run(this.bot);
+    const runner = run(this.bot, 500, {
+      allowed_updates: [
+        'message',
+        'edited_message',
+        'callback_query',
+        'channel_post',
+      ],
+    });
     const stopRunner = async () => runner.isRunning() && (await runner.stop());
     process.once('SIGINT', stopRunner);
     process.once('SIGTERM', stopRunner);

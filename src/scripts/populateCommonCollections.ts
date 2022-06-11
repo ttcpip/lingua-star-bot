@@ -211,7 +211,7 @@ function getData() {
       ],
       ['Buy', 'Покупать, купить; to get something by paying money for it'],
       [
-        'Worth',
+        'Be Worth',
         'Стоить, быть достойным; having a particular value, especially in money',
       ],
       [
@@ -327,7 +327,10 @@ function getData() {
         'Adore',
         'Восхищаться, любить+ценить+уважать; love+admire+respect, worship',
       ],
-      ['Afraid', 'Бояться, переживать; feel fear for something bad can happen'],
+      [
+        'Be Afraid',
+        'Бояться, переживать; feel fear for something bad can happen',
+      ],
       ['Nervous', 'Нервный, на иголках; worried'],
       ['Tranquil', 'Спокойный, умиротворенный; calm, balanced'],
       ['Cheerful', 'Радостный, довольный; happy, positive'],
@@ -553,7 +556,7 @@ function getData() {
         'Clockwise / counterclockwise',
         'По / против часовой стрелки; in the direction of the clock hands / opposite',
       ],
-      ['Behalf', 'От имени; representing, for the good of smb'],
+      ['On Behalf', 'От имени; representing, for the good of smb'],
       ['Whatever', 'Что угодно, без разницы; not important, no difference'],
       ['Snug', 'Уютно; feeling warm, comfortable and protected, cosily'],
       ['Behind', 'Позади, сзади; at the back of smth'],
@@ -571,7 +574,6 @@ function getData() {
         'Congratulations',
         'Поздравления, поздравляю!; expression used to show you’re glad and pleased with someone’s achievements, success or happiness',
       ],
-      ['Thereby', 'Тем самым, таким образом; as a result of this action'],
     ],
     Outside: [
       ['Tree', 'Трава, зеленая под ногами; green, under your feet'],
