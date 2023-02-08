@@ -40,7 +40,6 @@ async function main() {
   logger.info(`TgBotManager initialization...`);
   const tgBotManager = new TgBotManager(
     settingsManager.get().mainTgBotToken,
-    db,
     settingsManager,
     localizationManager,
   );

@@ -1,6 +1,6 @@
 import { Bot } from 'grammy';
 import { run } from '@grammyjs/runner';
-import { Database, SettingsManager } from '../database';
+import { SettingsManager } from '../database';
 import { LocalizationManager } from '../localization';
 import { BotApi, BotContext } from './BotContext';
 import { CommonModule } from './modules/common';
@@ -13,7 +13,6 @@ export class TgBotManager {
   private bot: Bot<BotContext, BotApi>;
   constructor(
     token: string,
-    private db: Database,
     private settingsManager: SettingsManager,
     private localizationManager: LocalizationManager,
   ) {

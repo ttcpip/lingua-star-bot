@@ -203,7 +203,7 @@ export class UserModule {
 
       if (remembers) await word.increment({ repeatedCount: 1 });
 
-      ctx.match = []; // so that reviseWordHandler don't know about answered word
+      ctx.match = undefined; // so that reviseWordHandler don't know about answered word
       ctx
         .answerCallbackQuery(
           remembers

@@ -74,7 +74,7 @@ common =
 #
 # Messages:
 msg =
-  .main-menu = {"️"}
+  .main-menu = {"️ㅤ"}
   .settings =
     <b>{btn.settings}</b>
 
