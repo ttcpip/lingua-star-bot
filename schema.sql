@@ -1,10 +1,3 @@
--- --------------------------------------------------------
--- Host:                         localhost
--- Server version:               5.7.34-log - MySQL Community Server (GPL)
--- Server OS:                    Win64
--- HeidiSQL Version:             12.0.0.6468
--- --------------------------------------------------------
-
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET NAMES utf8 */;
 /*!50503 SET NAMES utf8mb4 */;
@@ -14,13 +7,10 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
+DROP DATABASE IF EXISTS `lingua_bot`;
+CREATE DATABASE IF NOT EXISTS `lingua_bot` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin */;
+USE `lingua_bot`;
 
--- Dumping database structure for lingua_star_bot
-DROP DATABASE IF EXISTS `lingua_star_bot`;
-CREATE DATABASE IF NOT EXISTS `lingua_star_bot` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin */;
-USE `lingua_star_bot`;
-
--- Dumping structure for table lingua_star_bot.home_work_entries
 DROP TABLE IF EXISTS `home_work_entries`;
 CREATE TABLE IF NOT EXISTS `home_work_entries` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -32,9 +22,6 @@ CREATE TABLE IF NOT EXISTS `home_work_entries` (
   CONSTRAINT `FK_home_work_entries_study_groups` FOREIGN KEY (`studyGroupId`) REFERENCES `study_groups` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
--- Data exporting was unselected.
-
--- Dumping structure for table lingua_star_bot.settings
 DROP TABLE IF EXISTS `settings`;
 CREATE TABLE IF NOT EXISTS `settings` (
   `id` tinyint(4) NOT NULL,
@@ -45,9 +32,6 @@ CREATE TABLE IF NOT EXISTS `settings` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
--- Data exporting was unselected.
-
--- Dumping structure for table lingua_star_bot.study_groups
 DROP TABLE IF EXISTS `study_groups`;
 CREATE TABLE IF NOT EXISTS `study_groups` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -56,9 +40,6 @@ CREATE TABLE IF NOT EXISTS `study_groups` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
--- Data exporting was unselected.
-
--- Dumping structure for table lingua_star_bot.users
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -72,9 +53,6 @@ CREATE TABLE IF NOT EXISTS `users` (
   CONSTRAINT `FK_users_study_groups` FOREIGN KEY (`studyGroupId`) REFERENCES `study_groups` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
--- Data exporting was unselected.
-
--- Dumping structure for table lingua_star_bot.words
 DROP TABLE IF EXISTS `words`;
 CREATE TABLE IF NOT EXISTS `words` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -91,9 +69,6 @@ CREATE TABLE IF NOT EXISTS `words` (
   CONSTRAINT `FK_words_words_collections` FOREIGN KEY (`wordsCollectionId`) REFERENCES `words_collections` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
--- Data exporting was unselected.
-
--- Dumping structure for table lingua_star_bot.words_collections
 DROP TABLE IF EXISTS `words_collections`;
 CREATE TABLE IF NOT EXISTS `words_collections` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -104,8 +79,6 @@ CREATE TABLE IF NOT EXISTS `words_collections` (
   KEY `FK_words_collections_users` (`userId`),
   CONSTRAINT `FK_words_collections_users` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
--- Data exporting was unselected.
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;

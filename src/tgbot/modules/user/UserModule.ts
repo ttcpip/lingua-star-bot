@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import lodash from 'lodash';
 import { createConversation } from '@grammyjs/conversations';
 import { Menu } from '@grammyjs/menu';
 import assert from 'assert';
@@ -265,7 +265,7 @@ export class UserModule {
           ),
         ]);
 
-        const randWord = _.sample(
+        const randWord = lodash.sample(
           ctx.session.lastShowedWordId
             ? words.filter((e) => e.id !== ctx.session.lastShowedWordId)
             : words,

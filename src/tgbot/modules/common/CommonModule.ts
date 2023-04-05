@@ -12,7 +12,7 @@ import logger from '../../../logger';
 import { parseMode } from '@grammyjs/parse-mode';
 import { conversations } from '@grammyjs/conversations';
 import { noop } from '../../../helpers';
-import _ from 'lodash';
+import lodash from 'lodash';
 
 export class CommonModule {
   static configureBotCatch(bot: Bot<BotContext>) {
@@ -24,7 +24,7 @@ export class CommonModule {
       } else {
         logger.error(logMsg, {
           error: err.error,
-          ctx: _.pick(err.ctx, ['update', 'me.id', 'me.username']),
+          ctx: lodash.pick(err.ctx, ['update', 'me.id', 'me.username']),
         });
       }
     });
